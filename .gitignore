@@ -1,0 +1,13 @@
+# Python and environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Data e Vector Database
+data/
+chroma_db/
+
+# Secret keys
+.env
