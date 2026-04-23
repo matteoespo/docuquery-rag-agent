@@ -12,3 +12,6 @@ chroma_db/
 
 # Secret keys
 .env
+
+# Other
+notes.txt
