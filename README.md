@@ -1,5 +1,5 @@
 # Industrial RAG Agent
-This project implements an Agentic RAG (Retrieval-Augmented Generation) system designed to process and query industrial technical documentation. The architecture is fully containerized and designed to run entirely on-premise using local LLMs.
+This project implements an Agentic RAG system designed to process and query industrial technical documentation. The architecture is fully containerized and designed to run entirely on-premise using local LLMs.
 
 ## Architecture Overview
 The system follows a modular architecture, decoupling the AI engine from the API layer to ensure scalability and maintainability.
