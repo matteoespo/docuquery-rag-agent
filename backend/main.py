@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from ai.rag_engine import get_rag_chain
 
 app = FastAPI(
-    title="Industrial AI Agent API",
+    title="DocuQuery RAG Agent",
     description="Local RAG system for technical manuals using Llama3 and Ollama.",
     version="1.0.0"
 )
