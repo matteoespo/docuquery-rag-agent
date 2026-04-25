@@ -1,9 +1,9 @@
 import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 import core.config as config
+from ai.llm import get_embeddings
 
 
 def ingest_manual():
@@ -30,7 +30,7 @@ def ingest_manual():
     print(f"Document split into {len(chunks)} chunks")
 
     # embedding model
-    embeddings = OllamaEmbeddings(model=config.EMBEDDING_MODEL)
+    embeddings = get_embeddings()
 
     # vector db
     vector_db = Chroma.from_documents(
