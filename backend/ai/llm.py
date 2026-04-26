@@ -1,5 +1,4 @@
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import OllamaEmbeddings, ChatOllama
 import core.config as config
 
 def get_llm():

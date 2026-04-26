@@ -7,25 +7,41 @@ import requests
 @st.fragment
 def render_chat_window():
     history = st.session_state["messages"]
-    with st.container(border=True, height=500):
+    chat_box = st.container(border=True, height=500)
+
+    with chat_box:
         for message in history:
             with st.chat_message(message["role"]):
                 st.write(message["content"])
-        if history and history[-1]["role"] == "user":
-            with st.spinner("I'm thinking..."):
-                response = requests.post(url="http://api:8000/api/chat", json={"query": history[-1]["content"]})
-                #st.error(f"Status: {response.status_code}")
-                #st.error(f"Text: {response.text}")
-                content = response.json()
-                st.session_state["messages"].append({
-                    "role": "assistant",
-                    "content": content["answer"]
-                })
-            st.rerun()
+
     prompt = st.chat_input("Ask something")
     if prompt:
         st.session_state["messages"].append({
-            "role": "user",
-            "content": prompt
-        })
+                "role": "user",
+                "content": prompt
+            })
+        with chat_box:
+            with st.chat_message("user"):
+                st.write(prompt)
+            with st.chat_message("assistant"):
+                with st.spinner("I'm thinking..."):
+                    try:
+                        response = requests.post(url="http://api:8000/api/chat", json={"query": prompt, "chat_history": history})
+                        if response.status_code == 200:
+                            content = response.json()
+                            st.session_state["messages"].append({
+                                "role": "assistant",
+                                "content": content["answer"]
+                            })
+                            #st.error(f"Status: {response.status_code}")
+                            #st.error(f"Text: {response.text}")
+                        else:
+                            st.error(f"Chat failed with error: {response.status_code}. Retry!")
+                        
+                        
+                    except Exception as e:
+                        st.error(f"Connection error: {e}")
+            
+        
         st.rerun(scope="fragment")
+

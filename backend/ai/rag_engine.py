@@ -1,5 +1,6 @@
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from ai.state import AgentState
 import core.config as config
 from ai.llm import get_llm, get_embeddings
@@ -38,7 +39,7 @@ def generate(state: AgentState):
         ]
     )
 
-    chain = llm | prompt
+    chain = prompt | llm | StrOutputParser()
     response = chain.invoke({"context": context, "question": question})
 
-    return {"answer": response.content}
+    return {"answer": response}

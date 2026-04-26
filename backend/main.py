@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from api.routers import router
-from ai.rag_engine import get_rag_chain
+from ai.agent import load_agent
 
 app = FastAPI(
     title="DocuQuery RAG Agent",
@@ -15,12 +15,11 @@ async def health_check():
     """Status check for docker"""
     return {"status": "running", "model": "llama3", "db": "chromadb"}
 
-# Load the RAG chain into memory at startup
+# Load the agent into memory at startup
 try:
-    print("Loading AI Model and Vector DB...")
-    rag_chain = get_rag_chain()
-    print("AI Engine ready.")
+    print("Loading the agent...")
+    app.state.agent = load_agent()
+    print("Agent loaded successfully!")
 except Exception as e:
-    print(f"Error loading RAG Engine: {e}")
-    rag_chain = None
-
+    print(f"Error loading the agent: {e}")
+    app.state.agent = None
