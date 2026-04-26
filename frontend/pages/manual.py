@@ -1,10 +1,10 @@
 import streamlit as st
 
-st.title("Quick Reference: DocuQuery RAG")
+st.header("Quick Reference")
 
 st.markdown("""
 Welcome to the DocuQuery system. This guide provides instructions on how to set up 
-and utilize your Agentic RAG system for efficient analysis of technical manuals.
+and utilize your agentic RAG system for efficient analysis of technical manuals.
 """)
 
 tab1, tab2, tab3 = st.tabs(["Getting Started", "How it Works", "Troubleshooting"])

@@ -7,7 +7,7 @@ import requests
 @st.fragment
 def render_chat_window():
     history = st.session_state["messages"]
-    chat_box = st.container(border=True, height=500)
+    chat_box = st.container(border=True, height=600)
 
     with chat_box:
         for message in history:
@@ -43,5 +43,5 @@ def render_chat_window():
                         st.error(f"Connection error: {e}")
             
         
-        st.rerun(scope="fragment")
+        st.rerun()
 
