@@ -7,7 +7,7 @@
 ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat&logo=langchain&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat&logo=langgraph&logoColor=white)
 
-An on-premise RAG system designed to process and query technical documentation (PDFs). 
+An on-premise RAG agentic system designed to process and query technical documentation (PDFs). 
 
 This project runs entirely locally using open-source LLMs. It features a microservices architecture decoupling the frontend, the API layer, and the AI reasoning engine.
 
@@ -26,11 +26,22 @@ The system is fully containerized and divided into three main microservices:
     * **Embeddings:** `nomic-embed-text` for semantic search.
     * **Vector DB:** `ChromaDB` for persistent local storage of chunked data.
 
-## Key Features
-* **100% Data Privacy:** Everything runs on your local network. No data ever leaves the infrastructure.
-* **Microservices Design:** API and UI can be scaled or updated independently.
-* **Asynchronous Ingestion:** Upload a PDF from the UI and the backend handles chunking, embedding, and database storage on the fly.
-* **Conditional Rendering:** The UI adapts based on the agent's readiness state.
+## Core Features (What's working right now)
+The project has recently evolved from a linear pipeline into a full-fledged Agentic application. Current capabilities include:
+
+* **Stateful Agentic RAG:** Powered by LangGraph, replacing linear chains with a graph architecture capable of maintaining conversational state and memory.
+* **Multi-Document Ingestion:** The backend handles multiple PDFs simultaneously, using deterministic IDs to perform intelligent upserts (preventing vector duplication in ChromaDB).
+* **Modern API Backend:** FastAPI handles document chunking, embedding, and chat routing with robust error handling and telemetry control.
+* **Interactive Chat UI:** A responsive Streamlit frontend featuring session memory, multi-file upload, and real-time visual feedback.
+
+## Roadmap & Next Steps
+The next phase focuses on agent autonomy, response quality, and advanced UX:
+
+* **Self-Reflective RAG (CRAG):** Implement a "Grader" node that evaluates retrieved documents. If the retrieved chunks are irrelevant, the agent will refuse to answer or automatically rewrite the query instead of hallucinating.
+* **Semantic Query Routing:** Teach the agent to classify user input (e.g., distinguishing between casual greetings and technical queries) to bypass the Vector DB when unnecessary, saving compute time.
+* **Token Streaming:** Implement token-by-token generation in the FastAPI backend and Streamlit UI for a faster, ChatGPT-like user experience.
+* **Source Citations:** Enhance the agent's output to explicitly cite the source document name and page number it used to generate the answer.
+* **Incremental Summarization:** Add a node to summarize the `chat_history` when it gets too long, keeping the LLM prompt within context limits while preserving long-term memory.
 
 ## Quick Start
 
@@ -59,12 +70,3 @@ The system is fully containerized and divided into three main microservices:
 
 * **Web UI:** Navigate to http://localhost:8501 to upload a pdf and start chatting.
 * **API Docs:** Navigate to http://localhost:8000/docs to test endpoints via Swagger UI.
-
-## Roadmap & Next Steps
-
-This project is actively evolving. The immediate next steps focus on shifting from a standard RAG pipeline to an Agentic Workflow:
-
-* **LangGraph Integration:** Move from linear LangChain LCEL to a stateful graph architecture.
-* **Query Routing:** Teach the agent to distinguish between casual greetings and technical queries (bypassing the Vector DB when unnecessary).
-* **Self-Reflective RAG:** Implement a "Grader" node that evaluates retrieved documents. If the retrieved chunks are irrelevant, the agent will refuse to answer or rewrite the query instead of hallucinating.
-* **Multi-Document Support:** Allow the ingestion of multiple PDFs simultaneously.
