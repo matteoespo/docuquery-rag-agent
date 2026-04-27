@@ -13,11 +13,11 @@ dashboard = st.Page(
     "pages/dashboard.py", title="Dashboard", icon=":material/dashboard:", default=True
 )
 documentation = st.Page("pages/manual.py", title="Quick Reference", icon=":material/quick_reference:")
-
+analytics = st.Page("pages/analytics.py", title="Analytics", icon=":material/analytics:")
 
 pg = st.navigation(
     {
-    "Pages": [dashboard, documentation]
+    "Pages": [dashboard, analytics, documentation]
     }
 )
 
