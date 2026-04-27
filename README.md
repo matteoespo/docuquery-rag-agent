@@ -13,7 +13,8 @@ This project runs entirely locally using open-source LLMs. It features a microse
 
 ## User Interface
 
-![DocuQuery UI Placeholder](docs/screenshot.png) 
+![DocuQuery Dashboard](docs/screenshot_dashboard.png)
+![DocuQuery Analytics](docs/screenshot_analytics.png) 
 
 ## Architecture Stack
 
