@@ -27,21 +27,25 @@ The system is fully containerized and divided into three main microservices:
     * **Embeddings:** `nomic-embed-text` for semantic search.
     * **Vector DB:** `ChromaDB` for persistent local storage of chunked data.
 
-## Core Features (What's working right now)
-The project has recently evolved from a linear pipeline into a full-fledged Agentic application. Current capabilities include:
+## Agent Workflow
 
-* **Stateful Agentic RAG:** Powered by LangGraph, replacing linear chains with a graph architecture capable of maintaining conversational state and memory.
-* **Semantic Query Routing (Guardrails):** The agent dynamically classifies user intent. It intelligently routes technical queries to the Vector DB while instantly blocking out-of-scope questions, to reduce latency and tokens.
-* **Multi-Document Ingestion:** The backend handles multiple PDFs simultaneously, using deterministic IDs to perform intelligent upserts (preventing vector duplication in ChromaDB).
-* **Modern API Backend:** FastAPI handles document chunking, embedding, and chat routing with robust error handling and telemetry control.
-* **Interactive Chat UI:** A responsive Streamlit frontend featuring session memory, multi-file upload, and real-time visual feedback.
+![Agent Architecture](docs/agent_graph.png)
+
+## Core Features (What's working right now)
+The project has recently evolved from a linear pipeline into an Agentic application. Current capabilities include:
+
+* **Stateful Agentic RAG:** Powered by LangGraph, replacing linear chains with a cyclical graph architecture capable of maintaining conversational state and memory.
+* **Semantic Query Routing (Guardrails):** The agent dynamically classifies user intent. It intelligently routes technical queries to the Vector DB while instantly blocking out-of-scope questions, reducing latency and token usage.
+* **Self-Reflective Loop (CRAG):** The agent utilizes an internal "grader" node to evaluate its own retrieved documents and generated answers. If it detects a hallucination or poor context, it rejects the answer and tries again.
+* **Web Search Fallback:** If the local document database does not contain the answer, the agent autonomously falls back to querying the web (via DuckDuckGo) to augment its context.
+* **Multi-Document Ingestion:** The backend handles multiple PDFs simultaneously, using IDs (preventing vector duplication in ChromaDB).
+* **API Backend:** FastAPI handles document chunking, embedding, and chat routing with robust error handling and telemetry control.
 
 ## Roadmap & Next Steps
-The next phase focuses on agent autonomy, response quality, and advanced UX:
+The next phase focuses on performance optimization and advanced UX:
 
-* **Self-Reflective RAG (CRAG):** Implement a "Grader" node that evaluates retrieved documents. If the retrieved chunks are irrelevant, the agent will refuse to answer or automatically rewrite the query instead of hallucinating.
 * **Token Streaming:** Implement token-by-token generation in the FastAPI backend and Streamlit UI for a faster, ChatGPT-like user experience.
-* **Source Citations:** Enhance the agent's output to explicitly cite the source document name and page number it used to generate the answer.
+* **Source Citations:** Enhance the agent's output to explicitly cite the source document name, web link, or page number it used to generate the answer.
 * **Incremental Summarization:** Add a node to summarize the `chat_history` when it gets too long, keeping the LLM prompt within context limits while preserving long-term memory.
 
 ## Quick Start
@@ -63,7 +67,7 @@ The next phase focuses on agent autonomy, response quality, and advanced UX:
     *Run inside the Ollama container:*
 
     ```bash
-    docker exec -it docuquery-rag-ollama ollama pull llama3
+    docker exec -it docuquery-rag-ollama ollama pull llama3.1
     docker exec -it docuquery-rag-ollama ollama pull nomic-embed-text
     ```
 
