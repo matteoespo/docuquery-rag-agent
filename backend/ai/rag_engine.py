@@ -4,7 +4,7 @@ from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from ai.state import AgentState
-from api.models import RouteRequest, GradeAnswerResponse, RetrievalEvalRequest
+from api.models import RouteRequest, RetrievalEvalRequest
 import core.config as config
 from ai.llm import get_llm, get_embeddings
 
@@ -14,6 +14,51 @@ embeddings = get_embeddings()
 vector_db = Chroma(persist_directory=config.DB_DIR, embedding_function=embeddings)
 duckduckgo_search = DuckDuckGoSearchRun()
 
+def _format_chat_messages(messages: list[dict]) -> str:
+    """Format chat messages into a readable plain-text transcript."""
+    lines = []
+    for message in messages:
+        role = str(message.get("role", "unknown")).strip().lower()
+        content = str(message.get("content", "")).strip()
+        if not content:
+            continue
+        lines.append(f"{role}: {content}")
+    return "\n".join(lines)
+
+def _build_memory_context(chat_history: list[dict]) -> str:
+    """Keep recent messages verbatim and summarize older conversation."""
+    if not chat_history:
+        return ""
+
+    recent_messages = chat_history[-3:]
+    older_messages = chat_history[:-3]
+
+    recent_block = _format_chat_messages(recent_messages)
+    older_summary = ""
+
+    if older_messages:
+        summarize_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "Summarize the prior conversation for assistant memory. "
+                    "Capture user goals, constraints, preferences, and unresolved topics in 4 concise bullet points max."
+                ),
+                ("human", "Conversation:\n{conversation}"),
+            ]
+        )
+        summarize_chain = summarize_prompt | llm | StrOutputParser()
+        older_summary = summarize_chain.invoke(
+            {"conversation": _format_chat_messages(older_messages)}
+        ).strip()
+
+    memory_sections = []
+    if older_summary:
+        memory_sections.append(f"Older conversation summary:\n{older_summary}")
+    if recent_block:
+        memory_sections.append(f"Most recent 3 messages:\n{recent_block}")
+
+    return "\n\n".join(memory_sections)
 
 def router(state: AgentState):
     """Node to route the question to either the vector store or block generation if it's out of scope"""
@@ -23,7 +68,7 @@ def router(state: AgentState):
 
     system_prompt = """You are an expert at routing user questions to a vectorstore or out_of_scope.
                         The vectorstore contains documents about technical manuals.
-                        Use the vectorstore for questions on these topics. For math, greetings, or general knowledge, use out_of_scope."""
+                        Use the vectorstore for questions on these topics. For math, greetings, coding advices, or general knowledge, use out_of_scope."""
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
@@ -119,14 +164,18 @@ def generate(state: AgentState):
     """Node to generate an answer using the retrieved documents and the agent's query"""
     question = state["query"]
     context = "\n\n".join([doc.page_content for doc in state["documents"]])
+    chat_history = state.get("chat_history", [])
+    memory_context = _build_memory_context(chat_history)
 
     system_prompt = (
         "You are a technical assistant."
         "Use the following pieces of retrieved context to answer the question."
+        "Use conversation memory to keep continuity when relevant."
         "If you don't know the answer based on the context, say that you don't know."
         "Keep the answer concise and professional."
         "\n\n"
-        "{context}"
+        "Retrieved context:\n{context}\n\n"
+        "Conversation memory:\n{memory_context}"
     )
 
     prompt = ChatPromptTemplate.from_messages(
@@ -137,6 +186,12 @@ def generate(state: AgentState):
     )
 
     chain = prompt | llm | StrOutputParser()
-    response = chain.invoke({"context": context, "question": question})
+    response = chain.invoke(
+        {
+            "context": context,
+            "question": question,
+            "memory_context": memory_context or "No prior conversation.",
+        }
+    )
 
     return {"answer": response}

@@ -25,10 +25,11 @@ class RetrievalEvalRequest(BaseModel):
         description="Route to vector_store if the documents contain the answer. Route to more_info_needed if they do not.",
     )
 
+'''
 class GradeAnswerResponse(BaseModel):
     """Assess whether the generated answer is useful and resolves the user's query"""
     is_useful: Literal["yes", "no"] = Field(
         ...,
         description="Type 'yes' if the answer directly addresses the user's question and is informative. Type 'no' if it does not.",
     )
-
+'''

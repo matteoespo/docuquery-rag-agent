@@ -40,13 +40,13 @@ The project has recently evolved from a linear pipeline into an Agentic applicat
 * **Web Search Fallback:** If the local document database does not contain the answer, the agent autonomously falls back to querying the web (via DuckDuckGo) to augment its context.
 * **Multi-Document Ingestion:** The backend handles multiple PDFs simultaneously, using IDs (preventing vector duplication in ChromaDB).
 * **API Backend:** FastAPI handles document chunking, embedding, and chat routing with robust error handling and telemetry control.
+* **Adaptive Long-Term Memory:** A sliding-window memory approach that preserves the last three messages verbatim for immediate context, while utilizing an LLM-driven summarization chain to compress older interactions into concise bullet points, ensuring long-term continuity without exceeding token limits.
 
 ## Roadmap & Next Steps
 The next phase focuses on performance optimization and advanced UX:
 
 * **Token Streaming:** Implement token-by-token generation in the FastAPI backend and Streamlit UI for a faster, ChatGPT-like user experience.
 * **Source Citations:** Enhance the agent's output to explicitly cite the source document name, web link, or page number it used to generate the answer.
-* **Incremental Summarization:** Add a node to summarize the `chat_history` when it gets too long, keeping the LLM prompt within context limits while preserving long-term memory.
 
 ## Quick Start
 

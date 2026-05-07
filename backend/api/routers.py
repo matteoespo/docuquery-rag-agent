@@ -23,10 +23,11 @@ async def chat_with_agent(query: QueryRequest, request: Request):
         query=query.query,
         documents=[],
         answer="",
-        chat_history=query.chat_history
+        chat_history=query.chat_history,
+        retries=0
     )
     agent = request.app.state.agent
     if not agent:
         raise HTTPException(status_code=500, detail="Agent not initialized")
-    response = agent.invoke(initial_state)
+    response = await agent.ainvoke(initial_state)
     return {"answer": response["answer"]}
