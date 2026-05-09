@@ -1,6 +1,6 @@
 # Contains endpoints
 from typing import List
-from fastapi import HTTPException, APIRouter, UploadFile, Request
+from fastapi import HTTPException, APIRouter, UploadFile, Request, Form
 from .models import QueryRequest
 from ai.ingestion import ingest_manual
 from ai.state import AgentState
@@ -8,7 +8,6 @@ from ai.state import AgentState
 #authentication imports
 from core.db import get_db
 from core.auth import authenticate_user, create_user, create_access_token
-from sqlalchemy.orm import Session
 
 router = APIRouter()
 
@@ -39,21 +38,21 @@ async def chat_with_agent(query: QueryRequest, request: Request):
 
 
 @router.post("/login")
-def login(request: Request, username: str, password: str, db: Session = next(get_db())):
-    user = authenticate_user(db, username, password)
+def login(request : Request, username: str = Form(...), password: str = Form(...)):
+    user = authenticate_user(next(get_db()), username, password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(user.id)
     return {"message": "Login successful", "access_token": access_token}
 
 @router.post("/register")
-def register(request: Request, username: str, password: str, db: Session = next(get_db())):
+def register(request: Request, username: str = Form(...), password: str = Form(...)):
     try:
-        user = create_user(db, username, password)
+        user = create_user(next(get_db()), username, password)
         if not user:
             raise HTTPException(status_code=400, detail="User registration failed")
-        login(request, username, password, db)  # Automatically log in the user after registration
+        login(request, username, password, next(get_db()))  # Automatically log in the user after registration
         return {"message": "User created successfully"}
     except HTTPException as e:
         raise e

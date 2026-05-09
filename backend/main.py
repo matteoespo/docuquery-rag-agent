@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from api.routers import router
 from ai.agent import load_agent
+from core.db import init_db, ensure_admin_user
 
 app = FastAPI(
     title="DocuQuery RAG Agent",
@@ -17,6 +18,10 @@ async def health_check():
 
 # Load the agent into memory at startup
 try:
+    print("Initialize the database connection...")
+    init_db()
+    ensure_admin_user()
+    print("Database connection successful!")
     print("Loading the agent...")
     app.state.agent = load_agent()
     print("Agent loaded successfully!")

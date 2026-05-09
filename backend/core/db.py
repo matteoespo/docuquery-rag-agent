@@ -2,13 +2,12 @@
 Initializes and connects the database
 '''
 from sqlalchemy.orm.session import Session
-
-
-import os
 from sqlalchemy import create_engine
-from models import Base
+from core.models import Base
 from sqlalchemy.orm import sessionmaker
+from core.auth import get_user_by_username, create_user
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
@@ -26,3 +25,15 @@ def get_db():
 def init_db():
     """Initializes the database by creating all tables defined in the models."""
     Base.metadata.create_all(bind=engine)
+
+def ensure_admin_user():
+    db = SessionLocal()
+    try:
+        if not get_user_by_username(db, "admin"):
+            create_user(db, "admin", "admin")
+            print("Admin user created: admin/admin")
+        else:
+            print("Admin user already exists.")
+    finally:
+        db.close()
+
