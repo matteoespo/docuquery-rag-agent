@@ -15,3 +15,11 @@ def get_embeddings():
         model=config.EMBEDDING_MODEL, 
         base_url=config.OLLAMA_BASE_URL
     )
+
+def get_vision_llm():
+    """Returns Moondream for vision tasks"""
+    return ChatOllama(
+        model="moondream", 
+        temperature=0, 
+        base_url=config.OLLAMA_BASE_URL
+    )
