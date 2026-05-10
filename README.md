@@ -24,6 +24,7 @@ The system is fully containerized and divided into three main microservices:
 * **Backend API (FastAPI):** Handles routing, input/output validation via Pydantic, and file uploads.
 * **AI Engine (LangChain & Ollama):** 
     * **LLM:** `Llama 3.1 (8B)` via Ollama for local reasoning.
+    * **Vision LLM:** `Moondream (1.8B)` via Ollama for image captioning.
     * **Embeddings:** `nomic-embed-text` for semantic search.
     * **Vector DB:** `ChromaDB` for persistent local storage of chunked data.
 
@@ -38,7 +39,7 @@ The project has recently evolved from a linear pipeline into an Agentic applicat
 * **Semantic Query Routing (Guardrails):** The agent dynamically classifies user intent. It intelligently routes technical queries to the Vector DB while instantly blocking out-of-scope questions, reducing latency and token usage.
 * **Self-Reflective Loop (CRAG):** The agent utilizes an internal "grader" node to evaluate its own retrieved documents and generated answers. If it detects a hallucination or poor context, it rejects the answer and tries again.
 * **Web Search Fallback:** If the local document database does not contain the answer, the agent autonomously falls back to querying the web (via DuckDuckGo) to augment its context.
-* **Multi-Document Ingestion:** The backend handles multiple PDFs simultaneously, using IDs (preventing vector duplication in ChromaDB).
+* **Multimodal Ingestion:** Handles multiple PDFs simultaneously. Extracts tabular data as Markdown (via `pdfplumber`) and parses diagrams/images into searchable text using a Vision LLM (`moondream` via `PyMuPDF`).
 * **API Backend:** FastAPI handles document chunking, embedding, and chat routing with robust error handling and telemetry control.
 * **Adaptive Long-Term Memory:** A sliding-window memory approach that preserves the last three messages verbatim for immediate context, while utilizing an LLM-driven summarization chain to compress older interactions into concise bullet points, ensuring long-term continuity without exceeding token limits.
 
@@ -68,6 +69,7 @@ The next phase focuses on performance optimization and advanced UX:
 
     ```bash
     docker exec -it docuquery-rag-ollama ollama pull llama3.1
+    docker exec -it docuquery-rag-ollama ollama pull moondream
     docker exec -it docuquery-rag-ollama ollama pull nomic-embed-text
     ```
 
