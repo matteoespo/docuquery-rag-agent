@@ -4,10 +4,13 @@ __pycache__/
 .venv/
 venv/
 env/
+.vscode/
+.pytest_cache/
 
 # Data e Vector Database
 data/pdfs/*
 data/chroma_db/*
+tests/data/chroma_db/*
 
 # Secret keys
 .env
