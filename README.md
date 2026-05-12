@@ -1,6 +1,6 @@
 # DocuQuery RAG Agent
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
