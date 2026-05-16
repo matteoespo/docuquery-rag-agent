@@ -17,3 +17,5 @@ tests/data/chroma_db/*
 
 # Other
 notes.txt
+.agents
+.claude

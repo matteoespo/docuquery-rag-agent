@@ -20,7 +20,9 @@ services:
 
   # FastAPI Backend
   api:
-    build: backend/
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: docuquery-rag-api
     ports:
       - "8000:8000"
@@ -35,7 +37,9 @@ services:
 
   # Streamlit Frontend
   web:
-    build: frontend/
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: docuquery-rag-web
     ports:
       - "8501:8501"
