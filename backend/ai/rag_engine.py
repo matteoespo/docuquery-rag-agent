@@ -66,9 +66,14 @@ def router(state: AgentState):
 
     llm_router = llm.with_structured_output(RouteRequest)
 
-    system_prompt = """You are an expert at routing user questions to a vectorstore or out_of_scope.
-                        The vectorstore contains documents about technical manuals.
-                        Use the vectorstore for questions on these topics. For math, greetings, coding advices, or general knowledge, use out_of_scope."""
+    system_prompt = """You are an expert at routing user questions.
+                    The vectorstore contains documents about technical manuals.
+
+                    Analyze the user question and route it:
+                    - Use 'vector_store' (with underscore) for questions about technical manuals or documentation.
+                    - Use 'out_of_scope' for general chat, math, greetings, coding advice, or general knowledge questions.
+
+                    You must output a RouteRequest with the 'datasource' field set to either 'vector_store' or 'out_of_scope'."""
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
@@ -94,8 +99,12 @@ def check_if_more_info_needed(state: AgentState):
     llm_evaluator = llm.with_structured_output(RetrievalEvalRequest)
 
     system_prompt = """You are a grader assessing relevance of retrieved documents to a user question.
-    If the documents contain information relevant to answering the question, route to 'vector_store'. 
-    If the documents do not contain the answer or lack sufficient detail, route to 'more_info_needed'."""
+
+                    Analyze the documents and route accordingly:
+                    - Use 'vector_store' (with underscore) if the documents contain sufficient information to answer the question.
+                    - Use 'more_info_needed' if the documents lack relevant information or detail to answer the question.
+
+                    You must output a RetrievalEvalRequest with the 'datasource' field set to either 'vector_store' or 'more_info_needed'."""
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),

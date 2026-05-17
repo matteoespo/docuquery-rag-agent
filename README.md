@@ -14,7 +14,7 @@ This project runs entirely locally using open-source LLMs. It features a microse
 ## User Interface
 
 ![DocuQuery Dashboard](docs/screenshot_dashboard.png)
-![DocuQuery Analytics](docs/screenshot_analytics.png) 
+![DocuQuery Analytics](docs/screenshot_analytics.png)
 
 ## Architecture Stack
 
@@ -23,7 +23,7 @@ The system is fully containerized and divided into three main microservices:
 * **Frontend (Streamlit):** A reactive, chat-based UI. Features dynamic state management, real-time metrics, and document ingestion.
 * **Backend API (FastAPI):** Handles routing, input/output validation via Pydantic, and file uploads.
 * **AI Engine (LangChain & Ollama):** 
-    * **LLM:** `Llama 3.1 (8B)` via Ollama for local reasoning.
+    * **LLM:** `Llama 3.2 (3B)` via Ollama for local reasoning.
     * **Vision LLM:** `Moondream (1.8B)` via Ollama for image captioning.
     * **Embeddings:** `nomic-embed-text` for semantic search.
     * **Vector DB:** `ChromaDB` for persistent local storage of chunked data.
@@ -68,7 +68,7 @@ The next phase focuses on performance optimization and advanced UX:
     *Run inside the Ollama container:*
 
     ```bash
-    docker exec -it docuquery-rag-ollama ollama pull llama3.1
+    docker exec -it docuquery-rag-ollama ollama pull llama3.2:3b
     docker exec -it docuquery-rag-ollama ollama pull moondream
     docker exec -it docuquery-rag-ollama ollama pull nomic-embed-text
     ```
