@@ -3,6 +3,8 @@ from langsmith import Client
 import pandas as pd
 import os
 from dotenv import load_dotenv
+from datetime import datetime
+import json
 
 load_dotenv()
 
@@ -28,7 +30,14 @@ def get_langsmith_data(project_name):
         if run.events:
             for event in run.events:
                 if event.get("name") == "new_token":
-                    ttft = (event.get("time") - run.start_time).total_seconds()
+                    event_time = event.get("time")
+                    # Convert string timestamp to datetime if needed
+                    if isinstance(event_time, str):
+                        event_time = datetime.fromisoformat(event_time.replace('Z', '+00:00'))
+                    # Ensure both datetimes are naive for subtraction
+                    event_time_naive = event_time.replace(tzinfo=None) if event_time.tzinfo else event_time
+                    start_time_naive = run.start_time.replace(tzinfo=None) if run.start_time.tzinfo else run.start_time
+                    ttft = (event_time_naive - start_time_naive).total_seconds()
                     break
         
         if not ttft and latency > 0:
@@ -90,7 +99,7 @@ with st.spinner("Fetching telemetry from LangSmith..."):
         
         st.dataframe(
             df.sort_values("Timestamp", ascending=False),
-            use_container_width=True,
+            width='stretch',
             column_config={
                 "Timestamp": st.column_config.DatetimeColumn("Date & Time", format="DD/MM/YY - HH:mm:ss"),
                 "Status": st.column_config.TextColumn("Status"),
