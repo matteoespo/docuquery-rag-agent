@@ -2,6 +2,7 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
+from langchain.output_parsers import PydanticOutputParser, RetryOutputParser
 from langchain_core.output_parsers import StrOutputParser
 from ai.state import AgentState
 from api.models import RouteRequest, RetrievalEvalRequest
@@ -64,7 +65,8 @@ def router(state: AgentState):
     """Node to route the question to either the vector store or block generation if it's out of scope"""
     question = state["query"]
 
-    llm_router = llm.with_structured_output(RouteRequest)
+    parser = PydanticOutputParser(pydantic_object=RouteRequest)
+    retry_parser = RetryOutputParser.from_llm(parser=parser, llm=llm)
 
     system_prompt = """You are an expert at routing user questions.
                     The vectorstore contains documents about technical manuals.
@@ -73,18 +75,28 @@ def router(state: AgentState):
                     - Use 'vector_store' (with underscore) for questions about technical manuals or documentation.
                     - Use 'out_of_scope' for general chat, math, greetings, coding advice, or general knowledge questions.
 
-                    You must output a RouteRequest with the 'datasource' field set to either 'vector_store' or 'out_of_scope'."""
+                    {format_instructions}"""
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
         ("human", "{query}")
-    ])
+    ]).partial(format_instructions=parser.get_format_instructions())
 
-    router_chain = prompt | llm_router
+    base_chain = prompt | llm | StrOutputParser()
 
-    route = router_chain.invoke({"query": question})
+    try:
+        raw_response = base_chain.invoke({"query": question})
+        route = parser.invoke(raw_response)
+    except Exception:
+        try:
+            prompt_value = prompt.format_prompt(query=question)
+            route = retry_parser.invoke_with_prompt(raw_response, prompt_value)
+        except Exception:
+            # fallback
+            return "vector_store"
 
     return route.datasource
+
 
 def check_if_more_info_needed(state: AgentState):
     """Node to check if the retrieved documents are sufficient, or if we need a web search for more info"""
@@ -96,7 +108,8 @@ def check_if_more_info_needed(state: AgentState):
         
     context = "\n\n".join([doc.page_content for doc in docs])
 
-    llm_evaluator = llm.with_structured_output(RetrievalEvalRequest)
+    parser = PydanticOutputParser(pydantic_object=RetrievalEvalRequest)
+    retry_parser = RetryOutputParser.from_llm(parser=parser, llm=llm)
 
     system_prompt = """You are a grader assessing relevance of retrieved documents to a user question.
 
@@ -104,21 +117,31 @@ def check_if_more_info_needed(state: AgentState):
                     - Use 'vector_store' (with underscore) if the documents contain sufficient information to answer the question.
                     - Use 'more_info_needed' if the documents lack relevant information or detail to answer the question.
 
-                    You must output a RetrievalEvalRequest with the 'datasource' field set to either 'vector_store' or 'more_info_needed'."""
+                    {format_instructions}"""
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
         ("human", "Question: {query}\n\nRetrieved Documents: {context}")
-    ])
+    ]).partial(format_instructions=parser.get_format_instructions())
 
-    evaluator_chain = prompt | llm_evaluator
-    route = evaluator_chain.invoke({"query": question, "context": context})
+    base_chain = prompt | llm | StrOutputParser()
+
+    try:
+        raw_response = base_chain.invoke({"query": question, "context": context})
+        route = parser.invoke(raw_response)
+    except Exception:
+        try:
+            prompt_value = prompt.format_prompt(query=question, context=context)
+            route = retry_parser.invoke_with_prompt(raw_response, prompt_value)
+        except Exception:
+            # fallback
+            return "vector_store"
 
     return route.datasource
 
 def out_of_scope_node(state: AgentState):
     """Node to handle out-of-scope questions by returning a default response indicating the assistant's limitations."""
-    response = "I am a technical assistant specialized in manuals. I cannot answer general or out-of-scope questions."
+    response = "HI! I am a technical assistant specialized in manuals. I will answer all your technical questions based on the uploaded documents."
     
     return {"answer": response}
 
@@ -169,38 +192,40 @@ def grade_answer(state: AgentState):
     else:
         return "not_useful"
 
-def generate(state: AgentState):
-    """Node to generate an answer using the retrieved documents and the agent's query"""
+from langchain_core.runnables import RunnableConfig
+
+async def generate(state: AgentState, config: RunnableConfig):
+    """Node to generate an answer using retrieved documents and query.
+
+    KV Cache Optimization: Static content (system + context) placed FIRST,
+    dynamic query placed LAST for byte-for-byte prefix matching across requests.
+    """
     question = state["query"]
     context = "\n\n".join([doc.page_content for doc in state["documents"]])
     chat_history = state.get("chat_history", [])
     memory_context = _build_memory_context(chat_history)
 
-    system_prompt = (
-        "You are a technical assistant."
-        "Use the following pieces of retrieved context to answer the question."
-        "Use conversation memory to keep continuity when relevant."
-        "If you don't know the answer based on the context, say that you don't know."
+    system_base = (
+        "You are a technical assistant. "
+        "Use the following pieces of retrieved context to answer the question. "
+        "Use conversation memory to keep continuity when relevant. "
+        "If you don't know the answer based on the context, say that you don't know. "
         "Keep the answer concise and professional."
-        "\n\n"
-        "Retrieved context:\n{context}\n\n"
-        "Conversation memory:\n{memory_context}"
     )
+
+    retrieved_context_block = f"RETRIEVED CONTEXT:\n{context}\n" if context else "RETRIEVED CONTEXT:\n(No documents retrieved)\n"
+    memory_block = f"CONVERSATION MEMORY:\n{memory_context}\n" if memory_context else "CONVERSATION MEMORY:\n(No prior conversation)\n"
+
+    static_prefix = f"{system_base}\n\n{retrieved_context_block}\n{memory_block}"
 
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", system_prompt),
+            ("system", static_prefix),
             ("human", "{question}"),
         ]
     )
 
-    chain = prompt | llm | StrOutputParser()
-    response = chain.invoke(
-        {
-            "context": context,
-            "question": question,
-            "memory_context": memory_context or "No prior conversation.",
-        }
-    )
+    chain = prompt | llm.with_config({"tags": ["generate_node"]}) | StrOutputParser()
+    response = await chain.ainvoke({"question": question}, config=config)
 
     return {"answer": response}
