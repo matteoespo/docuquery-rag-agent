@@ -4,7 +4,6 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 from datetime import datetime
-import json
 
 load_dotenv()
 

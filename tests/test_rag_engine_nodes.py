@@ -1,5 +1,6 @@
 """Unit tests for RAG graph nodes that avoid real vector DB or Ollama where possible."""
-from unittest.mock import MagicMock, patch
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from langchain_core.documents import Document
 
@@ -58,18 +59,27 @@ def test_generate_invokes_chain_with_context(mock_llm, mock_from_messages):
     mock_prompt = MagicMock()
     mock_after_llm = MagicMock()
     mock_chain = MagicMock()
+    
+    # Mocking LCEL prompt | llm | output_parser
     mock_prompt.__or__.return_value = mock_after_llm
     mock_after_llm.__or__.return_value = mock_chain
-    mock_chain.invoke.return_value = "Synthesized answer from context."
+    mock_chain.ainvoke = AsyncMock(return_value="Synthesized answer from context.")
     mock_from_messages.return_value = mock_prompt
 
     docs = [Document(page_content="Spec: 12V DC input.", metadata={"source": "manual"})]
     state = {"query": "What voltage?", "documents": docs, "chat_history": []}
-    out = generate(state)
 
+    # Execute async generate function
+    out = asyncio.run(generate(state, config=MagicMock()))
+    
     assert out == {"answer": "Synthesized answer from context."}
-    mock_chain.invoke.assert_called_once()
-    call_kw = mock_chain.invoke.call_args[0][0]
+    mock_chain.ainvoke.assert_called_once()
+    
+    call_kw = mock_chain.ainvoke.call_args[0][0]
     assert call_kw["question"] == "What voltage?"
-    assert "12V" in call_kw["context"]
-    assert "No prior conversation." in call_kw["memory_context"]
+
+    # Verify static prefix contains the retrieved context
+    call_messages = mock_from_messages.call_args[0][0]
+    system_prompt = call_messages[0][1]
+    assert "12V DC input" in system_prompt
+    assert "RETRIEVED CONTEXT:" in system_prompt
