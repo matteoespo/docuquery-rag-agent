@@ -93,7 +93,7 @@ def router(state: AgentState):
             route = retry_parser.invoke_with_prompt(raw_response, prompt_value)
         except Exception:
             # fallback
-            return "vector_store"
+            return "out_of_scope"
 
     return route.datasource
 
