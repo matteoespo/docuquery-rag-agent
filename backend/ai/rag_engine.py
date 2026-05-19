@@ -1,4 +1,4 @@
-from langchain_community.tools import DuckDuckGoSearchRun
+from ddgs import DDGS
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
@@ -13,7 +13,7 @@ from ai.llm import get_llm, get_embeddings
 llm = get_llm()
 embeddings = get_embeddings()
 vector_db = Chroma(persist_directory=config.DB_DIR, embedding_function=embeddings)
-duckduckgo_search = DuckDuckGoSearchRun()
+duckduckgo_search = DDGS()
 
 def _format_chat_messages(messages: list[dict]) -> str:
     """Format chat messages into a readable plain-text transcript."""
@@ -175,12 +175,11 @@ def retrieve(state: AgentState):
 def websearch(state: AgentState):
     question = state["query"]
 
-    response = duckduckgo_search.run(question)
+    raw_results = duckduckgo_search.text(question, max_results=5)
+    formatted_response = "\n\n".join([f"Source: {res['href']}\n{res['body']}" for res in raw_results])
 
-    web_doc = Document(page_content=response, metadata={"source": "web"})
-    
-    docs = state.get("documents", [])
-    docs.append(web_doc)
+    web_doc = Document(page_content=formatted_response, metadata={"source": "web"})
+    docs = state.get("documents", []) + [web_doc]
     
     return {"documents": docs, "retries": 1}
 

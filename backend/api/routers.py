@@ -40,6 +40,7 @@ async def generate_tokens(agent, initial_state) -> AsyncGenerator[str, None]:
     Filters for 'on_chat_model_stream' events to extract raw text tokens."""
     has_yielded = False
     final_answer = None
+    generation_count = 0  # Track how many times the generate node runs
 
     async for event in agent.astream_events(
         initial_state,
@@ -49,7 +50,17 @@ async def generate_tokens(agent, initial_state) -> AsyncGenerator[str, None]:
         event_type = event.get("event")
         tags = event.get("tags", [])
         
-        if event_type == "on_chat_model_stream" and "generate_node" in tags:
+        # Detect when the LLM STARTS generating
+        if event_type == "on_chat_model_start" and "generate_node" in tags:
+            generation_count += 1
+            
+            # If this is a retry loop (attempt 2+), inject a visual separator into the stream
+            if generation_count > 1:
+                separator = "\n\n> **Searching the web for more information...**\n\n"
+                yield f"data: {json.dumps({'token': separator})}\n\n"
+
+        # Stream the raw text tokens
+        elif event_type == "on_chat_model_stream" and "generate_node" in tags:
             chunk = event.get("data", {}).get("chunk")
             if chunk and hasattr(chunk, "content"):
                 token = chunk.content
@@ -57,13 +68,13 @@ async def generate_tokens(agent, initial_state) -> AsyncGenerator[str, None]:
                     has_yielded = True
                     yield f"data: {json.dumps({'token': token})}\n\n"
                     
+        # Catch non-streaming responses (like the out-of-scope block node)
         elif event_type == "on_chain_end" and not has_yielded:
-            # Try to capture the final answer from the graph's output if it didn't stream
             output = event.get("data", {}).get("output")
             if isinstance(output, dict) and "answer" in output:
                 final_answer = output["answer"]
 
-    # If no tokens were emitted (e.g., out-of-scope query), send the captured answer
+    # If no tokens were streamed (e.g., it hit out_of_scope_node), send the captured answer at the end
     if not has_yielded and final_answer:
         yield f"data: {json.dumps({'token': final_answer})}\n\n"
 
