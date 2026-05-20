@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, START, END
 from ai.state import AgentState
-from ai.rag_engine import retrieve, generate, websearch, router, out_of_scope_node, grade_answer, check_if_more_info_needed
+from ai.nodes import retrieve, generate, websearch, router, out_of_scope_node, grade_answer, check_if_more_info_needed
 
 def load_agent():
     workflow = StateGraph(AgentState)

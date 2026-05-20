@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from backend.ai.rag_engine import grade_answer
+from backend.ai.nodes.generation import grade_answer
 
 def test_grade_answer_retries_limit():
     """Test that it returns 'useful' if retries is >= 2 regardless of LLM output."""
@@ -7,7 +7,7 @@ def test_grade_answer_retries_limit():
     result = grade_answer(state)
     assert result == "useful"
 
-@patch("backend.ai.rag_engine.ChatPromptTemplate.from_messages")
+@patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
 def test_grade_answer_useful(mock_from_messages):
     """Test that it returns 'useful' if LLM grades it as yes."""
     mock_chain = MagicMock()
@@ -20,7 +20,7 @@ def test_grade_answer_useful(mock_from_messages):
     
     assert result == "useful"
 
-@patch("backend.ai.rag_engine.ChatPromptTemplate.from_messages")
+@patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
 def test_grade_answer_not_useful(mock_from_messages):
     """Test that it returns 'not_useful' if LLM grades it as no."""
     mock_chain = MagicMock()

@@ -12,11 +12,11 @@ from backend.api.routers import generate_tokens
 class TestStreamingPromptStructure:
     """Test that new prompt structure supports KV cache hits."""
 
-    @patch("backend.ai.rag_engine.ChatPromptTemplate.from_messages")
-    @patch("backend.ai.rag_engine.llm")
+    @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
+    @patch("backend.ai.nodes.generation.llm")
     def test_generate_static_prefix_first(self, mock_llm, mock_from_messages):
         """Verify static content (system + context) comes before dynamic query."""
-        from backend.ai.rag_engine import generate
+        from backend.ai.nodes.generation import generate
 
         mock_prompt = MagicMock()
         mock_after_llm = MagicMock()
@@ -49,13 +49,13 @@ class TestStreamingPromptStructure:
         mock_chain.ainvoke.assert_called_once()
         invoke_args = mock_chain.ainvoke.call_args[0][0]
         assert invoke_args == {"question": "What is X?"}
-    @patch("backend.ai.rag_engine.ChatPromptTemplate.from_messages")
-    @patch("backend.ai.rag_engine.llm")
+    @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
+    @patch("backend.ai.nodes.generation.llm")
     def test_generate_static_prefix_contains_system_and_context(
         self, mock_llm, mock_from_messages
     ):
         """Verify static prefix contains system instructions + context + memory."""
-        from backend.ai.rag_engine import generate
+        from backend.ai.nodes.generation import generate
 
         mock_prompt = MagicMock()
         mock_after_llm = MagicMock()
@@ -86,7 +86,7 @@ class TestStreamingPromptStructure:
 
     def test_generate_kv_cache_prefix_reuse(self):
         """Test that identical document sets produce identical static prefixes."""
-        from backend.ai.rag_engine import generate
+        from backend.ai.nodes.generation import generate
 
         docs = [
             Document(page_content="Doc A content", metadata={"source": "manual1"}),
