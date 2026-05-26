@@ -2,22 +2,38 @@
 from typing import List, AsyncGenerator
 from fastapi import HTTPException, APIRouter, UploadFile, Request
 from fastapi.responses import StreamingResponse
+from starlette.background import BackgroundTasks
 from .models import QueryRequest
-from ai.ingestion import ingest_manual
+from ai.ingestion import ingest_manual, enrich_with_images, get_ingestion_status
 from ai.state import AgentState
 import json
 
 router = APIRouter()
 
 @router.post("/upload")
-async def upload_pdf(files: List[UploadFile]):
+def upload_pdf(files: List[UploadFile], background_tasks: BackgroundTasks):
     for file in files:
         filename = file.filename
-        contents = await file.read()
+        contents = file.file.read()
         with open(f"/app/data/pdfs/{filename}", mode="wb") as f:
             f.write(contents)
-    ingest_manual()
-    return {"message": f"Successfully uploaded {len(files)} files and ingested into the database.", "doc_count": len(files)}
+
+    # Phase 1(synchronous): text + tables
+    pdf_files = ingest_manual()
+
+    # Phase 2(background): image captioning
+    if pdf_files:
+        background_tasks.add_task(enrich_with_images, pdf_files)
+
+    return {
+        "message": f"Successfully uploaded {len(files)} files. Text and tables ingested. Image captioning running in background.",
+        "doc_count": len(files),
+    }
+
+@router.get("/ingestion/status")
+def ingestion_status() -> dict:
+    """Check the progress of background image captioning."""
+    return get_ingestion_status()
 
 @router.post("/chat")
 async def chat_with_agent(query: QueryRequest, request: Request):
