@@ -1,19 +1,20 @@
 import os
 import glob
 import base64
+import hashlib
 import time
 import threading
-from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_core.messages import HumanMessage
-import core.config as config
+from core.config import settings
+from core.logger import get_logger
 from ai.llm import get_embeddings, get_vision_llm
 import fitz
 import pdfplumber
 
-load_dotenv()
+logger = get_logger(__name__)
 
 # Ingestion status tracking (thread-safe, read via get_ingestion_status())
 _status_lock = threading.Lock()
@@ -36,15 +37,30 @@ def _update_status(**kwargs):
         _ingestion_status.update(kwargs)
 
 
+def _increment_images_done():
+    """Atomically increment the images_done counter."""
+    with _status_lock:
+        _ingestion_status["images_done"] += 1
+
+
+def _file_hash(file_path: str) -> str:
+    """Return a short SHA-256 hex digest for deduplication."""
+    h = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for block in iter(lambda: f.read(8192), b""):
+            h.update(block)
+    return h.hexdigest()[:16]
+
+
 # Image helpers
 def _should_caption_image(image_bytes: bytes, img_metadata: dict) -> bool:
     """Filter out small/decorative images that add no retrieval value."""
-    if len(image_bytes) < config.MIN_IMAGE_BYTES:
+    if len(image_bytes) < settings.min_image_bytes:
         return False
 
     width = img_metadata.get("width", 0)
     height = img_metadata.get("height", 0)
-    if width < config.MIN_IMAGE_DIMENSION and height < config.MIN_IMAGE_DIMENSION:
+    if width < settings.min_image_dimension and height < settings.min_image_dimension:
         return False
 
     return True
@@ -66,7 +82,7 @@ def extract_image_caption(image_bytes: bytes) -> str:
         response = vision_llm.invoke([message])
         return response.content
     except Exception as e:
-        print(f"Vision model error: {e}")
+        logger.error("Vision model error: %s", e)
         return "Image description unavailable."
 
 # Table helpers
@@ -111,28 +127,28 @@ def ingest_manual() -> list[str]:
     _update_status(phase="text", detail="Extracting text and tables...",
                    images_done=0, images_total=0)
 
-    if not os.path.exists(config.MANUAL_PATH):
-        print(f"Error: {config.MANUAL_PATH} not found")
+    if not os.path.exists(settings.manual_path):
+        logger.error("Manual path not found: %s", settings.manual_path)
         _update_status(phase="idle", detail="")
         return []
 
-    pdf_files = glob.glob(os.path.join(config.MANUAL_PATH, "**/*.pdf"), recursive=True)
+    pdf_files = glob.glob(os.path.join(settings.manual_path, "**/*.pdf"), recursive=True)
     if not pdf_files:
-        print("No PDF files found.")
+        logger.warning("No PDF files found.")
         _update_status(phase="idle", detail="")
         return []
 
     documents = []
-    print(f"Found {len(pdf_files)} PDFs. Extracting text and tables...")
+    logger.info("Found %d PDFs. Extracting text and tables...", len(pdf_files))
 
     for file_path in pdf_files:
         start = time.perf_counter()
         docs = _extract_text_and_tables(file_path)
         documents.extend(docs)
         elapsed = time.perf_counter() - start
-        print(f"  ✓ {os.path.basename(file_path)} — {len(docs)} pages — {elapsed:.1f}s")
+        logger.info("  ✓ %s — %d pages — %.1fs", os.path.basename(file_path), len(docs), elapsed)
 
-    print(f"Loaded {len(documents)} pages")
+    logger.info("Loaded %d pages", len(documents))
 
     # Split into chunks
     text_splitter = RecursiveCharacterTextSplitter(
@@ -141,11 +157,12 @@ def ingest_manual() -> list[str]:
         separators=["\n\n", "\n", ".", " ", ""]
     )
     chunks = text_splitter.split_documents(documents)
-    print(f"Document split into {len(chunks)} chunks")
+    logger.info("Document split into %d chunks", len(chunks))
 
-    # Prepare chunk IDs
+    # Prepare chunk IDs (hash-based for deduplication)
+    file_hashes = {fp: _file_hash(fp) for fp in pdf_files}
     chunk_ids = [
-        f"{chunk.metadata['source']}_{chunk.metadata['page']}_{i}"
+        f"{file_hashes[chunk.metadata['source']]}_{chunk.metadata['page']}_{i}"
         for i, chunk in enumerate(chunks)
     ]
 
@@ -153,20 +170,21 @@ def ingest_manual() -> list[str]:
     embeddings = get_embeddings()
 
     # Vector DB batched writes
-    vector_db = Chroma(persist_directory=config.DB_DIR, embedding_function=embeddings)
-    total_batches = (len(chunks) + config.CHROMA_BATCH_SIZE - 1) // config.CHROMA_BATCH_SIZE
+    vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=embeddings)
+    total_batches = (len(chunks) + settings.chroma_batch_size - 1) // settings.chroma_batch_size
 
-    for batch_num, i in enumerate(range(0, len(chunks), config.CHROMA_BATCH_SIZE), start=1):
-        batch = chunks[i : i + config.CHROMA_BATCH_SIZE]
-        batch_ids = chunk_ids[i : i + config.CHROMA_BATCH_SIZE]
+    for batch_num, i in enumerate(range(0, len(chunks), settings.chroma_batch_size), start=1):
+        batch = chunks[i : i + settings.chroma_batch_size]
+        batch_ids = chunk_ids[i : i + settings.chroma_batch_size]
         vector_db.add_documents(batch, ids=batch_ids)
-        print(
-            f"  Embedded batch {batch_num}/{total_batches} "
-            f"({min(i + config.CHROMA_BATCH_SIZE, len(chunks))}/{len(chunks)} chunks)"
+        logger.info(
+            "  Embedded batch %d/%d (%d/%d chunks)",
+            batch_num, total_batches,
+            min(i + settings.chroma_batch_size, len(chunks)), len(chunks)
         )
 
     elapsed = time.perf_counter() - phase1_start
-    print(f"Phase 1 complete: {len(pdf_files)} PDFs, {len(chunks)} chunks in {elapsed:.1f}s")
+    logger.info("Phase 1 complete: %d PDFs, %d chunks in %.1fs", len(pdf_files), len(chunks), elapsed)
 
     return pdf_files
 
@@ -195,7 +213,7 @@ def _extract_and_caption_images(file_path: str) -> list[Document]:
             caption = extract_image_caption(image_bytes)
             captions.append(f"[Image {img_index + 1} Caption]: {caption}")
 
-            _update_status(images_done=_ingestion_status["images_done"] + 1)
+            _increment_images_done()
 
         if captions:
             doc = Document(
@@ -206,7 +224,7 @@ def _extract_and_caption_images(file_path: str) -> list[Document]:
 
     pdf_document.close()
 
-    print(f"{filename} — {len(documents)} image caption chunks")
+    logger.info("%s — %d image caption chunks", filename, len(documents))
     return documents
 
 
@@ -215,9 +233,9 @@ def enrich_with_images(pdf_files: list[str]):
     Phase 2 (background): caption images with Moondream and upsert
     supplementary chunks into the existing Chroma DB.
     """
-    if config.SKIP_IMAGE_CAPTIONING:
+    if settings.skip_image_captioning:
         _update_status(phase="complete", detail="Image captioning skipped")
-        print("Image captioning skipped (SKIP_IMAGE_CAPTIONING=true)")
+        logger.info("Image captioning skipped (SKIP_IMAGE_CAPTIONING=true)")
         return
 
     phase2_start = time.perf_counter()
@@ -237,7 +255,7 @@ def enrich_with_images(pdf_files: list[str]):
 
     _update_status(phase="images", detail="Captioning images in background...",
                    images_done=0, images_total=total_images)
-    print(f"Phase 2: Captioning {total_images} images across {len(pdf_files)} PDFs...")
+    logger.info("Phase 2: Captioning %d images across %d PDFs...", total_images, len(pdf_files))
 
     all_image_docs = []
     for file_path in pdf_files:
@@ -245,11 +263,11 @@ def enrich_with_images(pdf_files: list[str]):
         docs = _extract_and_caption_images(file_path)
         all_image_docs.extend(docs)
         elapsed = time.perf_counter() - start
-        print(f"    ({os.path.basename(file_path)} — {elapsed:.1f}s)")
+        logger.info("    (%s — %.1fs)", os.path.basename(file_path), elapsed)
 
     if not all_image_docs:
         _update_status(phase="complete", detail="No captionable images found")
-        print("No images found to caption.")
+        logger.info("No images found to caption.")
         return
 
     # Chunk the caption documents
@@ -261,24 +279,24 @@ def enrich_with_images(pdf_files: list[str]):
     chunks = text_splitter.split_documents(all_image_docs)
 
     # Unique IDs prefixed with img_ to avoid collisions with Phase 1
+    file_hashes = {fp: _file_hash(fp) for fp in pdf_files}
     chunk_ids = [
-        f"img_{chunk.metadata['source']}_{chunk.metadata['page']}_{i}"
+        f"img_{file_hashes[chunk.metadata['source']]}_{chunk.metadata['page']}_{i}"
         for i, chunk in enumerate(chunks)
     ]
 
     # Upsert into existing Chroma DB
     embeddings = get_embeddings()
-    vector_db = Chroma(persist_directory=config.DB_DIR, embedding_function=embeddings)
+    vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=embeddings)
 
-    total_batches = (len(chunks) + config.CHROMA_BATCH_SIZE - 1) // config.CHROMA_BATCH_SIZE
-    for batch_num, i in enumerate(range(0, len(chunks), config.CHROMA_BATCH_SIZE), start=1):
-        batch = chunks[i : i + config.CHROMA_BATCH_SIZE]
-        batch_ids = chunk_ids[i : i + config.CHROMA_BATCH_SIZE]
+    total_batches = (len(chunks) + settings.chroma_batch_size - 1) // settings.chroma_batch_size
+    for batch_num, i in enumerate(range(0, len(chunks), settings.chroma_batch_size), start=1):
+        batch = chunks[i : i + settings.chroma_batch_size]
+        batch_ids = chunk_ids[i : i + settings.chroma_batch_size]
         vector_db.add_documents(batch, ids=batch_ids)
-        print(f"  Image batch {batch_num}/{total_batches}")
+        logger.info("  Image batch %d/%d", batch_num, total_batches)
 
     elapsed = time.perf_counter() - phase2_start
     _update_status(phase="complete",
                    detail=f"Done — {len(chunks)} image chunks in {elapsed:.1f}s")
-    print(f"Phase 2 complete: {len(chunks)} image chunks added in {elapsed:.1f}s")
-
+    logger.info("Phase 2 complete: %d image chunks added in %.1fs", len(chunks), elapsed)

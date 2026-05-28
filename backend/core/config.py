@@ -1,18 +1,47 @@
-'''
-Loads environment variables
-'''
-import os
+"""
+Central application settings loaded from environment variables.
 
-DB_DIR = "data/chroma_db"
-MANUAL_PATH = "data/pdfs/"
-EMBEDDING_MODEL = "nomic-embed-text"
-LLM_MODEL = "llama3.2:3b"
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+Uses Pydantic BaseSettings for validation, type coercion, and .env support.
+All backend modules should import ``settings`` from here instead of calling
+``os.getenv()`` directly.
+"""
 
-# Ingestion tuning
-SKIP_IMAGE_CAPTIONING = os.getenv("SKIP_IMAGE_CAPTIONING", "false").lower() == "true"
-MIN_IMAGE_BYTES = int(os.getenv("MIN_IMAGE_BYTES", "5000"))
-MIN_IMAGE_DIMENSION = int(os.getenv("MIN_IMAGE_DIMENSION", "100"))
-MAX_VISION_WORKERS = int(os.getenv("MAX_VISION_WORKERS", "2"))
-MAX_PDF_WORKERS = int(os.getenv("MAX_PDF_WORKERS", "4"))
-CHROMA_BATCH_SIZE = int(os.getenv("CHROMA_BATCH_SIZE", "100"))
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """Application-wide configuration with validated defaults."""
+
+    # ── Ollama ──
+    ollama_base_url: str = "http://ollama:11434"
+    llm_model: str = "llama3.2:3b"
+    vision_model: str = "moondream"
+    embedding_model: str = "nomic-embed-text"
+
+    # ── Paths ──
+    db_dir: str = "data/chroma_db"
+    manual_path: str = "data/pdfs/"
+
+    # ── Ingestion tuning ──
+    skip_image_captioning: bool = False
+    min_image_bytes: int = 5000
+    min_image_dimension: int = 100
+    max_vision_workers: int = 2
+    max_pdf_workers: int = 4
+    chroma_batch_size: int = 100
+
+    # ── Upload limits ──
+    max_upload_size_mb: int = 50
+    max_upload_files: int = 10
+
+    # ── CORS ──
+    cors_origins: list[str] = ["http://localhost:8501", "http://web:8501"]
+
+    # ── Retrieval ──
+    retrieval_k: int = 3
+    max_retries: int = 2
+
+    model_config = {"env_file": ".env", "extra": "ignore"}
+
+
+settings = Settings()

@@ -5,8 +5,9 @@ from backend.ai.nodes.routing import router as router_node
 
 
 @patch("backend.ai.nodes.routing.ChatPromptTemplate.from_messages")
-@patch("backend.ai.nodes.routing.llm")
-def test_router_routes_technical_to_vector_store(mock_llm, mock_from_messages):
+@patch("backend.ai.nodes.routing.get_llm")
+def test_router_routes_technical_to_vector_store(mock_get_llm, mock_from_messages):
+    mock_llm = mock_get_llm.return_value
     # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
     mock_prompt_partial = MagicMock()
     mock_after_llm = MagicMock()
@@ -24,8 +25,9 @@ def test_router_routes_technical_to_vector_store(mock_llm, mock_from_messages):
 
 
 @patch("backend.ai.nodes.routing.ChatPromptTemplate.from_messages")
-@patch("backend.ai.nodes.routing.llm")
-def test_router_routes_general_to_out_of_scope(mock_llm, mock_from_messages):
+@patch("backend.ai.nodes.routing.get_llm")
+def test_router_routes_general_to_out_of_scope(mock_get_llm, mock_from_messages):
+    mock_llm = mock_get_llm.return_value
     # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
     mock_prompt_partial = MagicMock()
     mock_after_llm = MagicMock()

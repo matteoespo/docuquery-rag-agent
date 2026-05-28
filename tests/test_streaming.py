@@ -13,8 +13,9 @@ class TestStreamingPromptStructure:
     """Test that new prompt structure supports KV cache hits."""
 
     @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
-    @patch("backend.ai.nodes.generation.llm")
-    def test_generate_static_prefix_first(self, mock_llm, mock_from_messages):
+    @patch("backend.ai.nodes.generation.get_llm")
+    def test_generate_static_prefix_first(self, mock_get_llm, mock_from_messages):
+        mock_llm = mock_get_llm.return_value
         """Verify static content (system + context) comes before dynamic query."""
         from backend.ai.nodes.generation import generate
 
@@ -50,10 +51,11 @@ class TestStreamingPromptStructure:
         invoke_args = mock_chain.ainvoke.call_args[0][0]
         assert invoke_args == {"question": "What is X?"}
     @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
-    @patch("backend.ai.nodes.generation.llm")
+    @patch("backend.ai.nodes.generation.get_llm")
     def test_generate_static_prefix_contains_system_and_context(
-        self, mock_llm, mock_from_messages
+        self, mock_get_llm, mock_from_messages
     ):
+        mock_llm = mock_get_llm.return_value
         """Verify static prefix contains system instructions + context + memory."""
         from backend.ai.nodes.generation import generate
 
@@ -142,57 +144,61 @@ class TestStreamingEndpoint:
 class TestStreamingLLMConfig:
     """Test LLM initialization with streaming settings."""
 
-    @patch("backend.ai.llm.config")
-    def test_get_llm_streaming_enabled(self, mock_config):
+    @patch("backend.ai.llm.settings")
+    def test_get_llm_streaming_enabled(self, mock_settings):
         """Verify streaming=True is set on ChatOllama."""
         from backend.ai.llm import get_llm
 
-        mock_config.LLM_MODEL = "llama3.2:3b"
-        mock_config.OLLAMA_BASE_URL = "http://ollama:11434"
+        mock_settings.llm_model = "llama3.2:3b"
+        mock_settings.ollama_base_url = "http://ollama:11434"
 
         with patch("backend.ai.llm.ChatOllama") as mock_chat_ollama:
+            get_llm.cache_clear()
             get_llm()
 
             mock_chat_ollama.assert_called_once()
             call_kwargs = mock_chat_ollama.call_args[1]
             assert call_kwargs.get("streaming") is True
 
-    @patch("backend.ai.llm.config")
-    def test_get_llm_keep_alive_infinite(self, mock_config):
+    @patch("backend.ai.llm.settings")
+    def test_get_llm_keep_alive_infinite(self, mock_settings):
         """Verify keep_alive=-1 prevents model unload."""
         from backend.ai.llm import get_llm
 
-        mock_config.LLM_MODEL = "llama3.2:3b"
-        mock_config.OLLAMA_BASE_URL = "http://ollama:11434"
+        mock_settings.llm_model = "llama3.2:3b"
+        mock_settings.ollama_base_url = "http://ollama:11434"
 
         with patch("backend.ai.llm.ChatOllama") as mock_chat_ollama:
+            get_llm.cache_clear()
             get_llm()
 
             call_kwargs = mock_chat_ollama.call_args[1]
             assert call_kwargs.get("keep_alive") == -1
 
-    @patch("backend.ai.llm.config")
-    def test_get_llm_fixed_num_ctx(self, mock_config):
+    @patch("backend.ai.llm.settings")
+    def test_get_llm_fixed_num_ctx(self, mock_settings):
         """Verify num_ctx=8192 for consistent context window."""
         from backend.ai.llm import get_llm
 
-        mock_config.LLM_MODEL = "llama3.2:3b"
-        mock_config.OLLAMA_BASE_URL = "http://ollama:11434"
+        mock_settings.llm_model = "llama3.2:3b"
+        mock_settings.ollama_base_url = "http://ollama:11434"
 
         with patch("backend.ai.llm.ChatOllama") as mock_chat_ollama:
+            get_llm.cache_clear()
             get_llm()
 
             call_kwargs = mock_chat_ollama.call_args[1]
             assert call_kwargs.get("num_ctx") == 8192
 
-    @patch("backend.ai.llm.config")
-    def test_get_vision_llm_streaming_settings(self, mock_config):
+    @patch("backend.ai.llm.settings")
+    def test_get_vision_llm_streaming_settings(self, mock_settings):
         """Verify vision LLM also has streaming settings."""
         from backend.ai.llm import get_vision_llm
 
-        mock_config.OLLAMA_BASE_URL = "http://ollama:11434"
+        mock_settings.ollama_base_url = "http://ollama:11434"
 
         with patch("backend.ai.llm.ChatOllama") as mock_chat_ollama:
+            get_vision_llm.cache_clear()
             get_vision_llm()
 
             call_kwargs = mock_chat_ollama.call_args[1]

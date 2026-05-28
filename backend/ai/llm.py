@@ -1,30 +1,45 @@
-from langchain_ollama import OllamaEmbeddings, ChatOllama
-import core.config as config
+"""LLM and embedding provider factories.
 
-def get_llm():
-    """Returns Llama3.2 with streaming, persistent KV cache, and fixed context window."""
+Centralises creation of Ollama-backed models. Uses ``lru_cache`` so that
+repeated calls across modules return the same client instance.
+"""
+
+from functools import lru_cache
+
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+
+from core.config import settings
+
+
+@lru_cache
+def get_llm() -> ChatOllama:
+    """Return the main chat LLM (cached singleton)."""
     return ChatOllama(
-        model=config.LLM_MODEL,
+        model=settings.llm_model,
         temperature=0,
-        base_url=config.OLLAMA_BASE_URL,
+        base_url=settings.ollama_base_url,
         streaming=True,
         keep_alive=-1,
         num_ctx=8192,
     )
 
-def get_embeddings():
-    """Returns the embedding model"""
+
+@lru_cache
+def get_embeddings() -> OllamaEmbeddings:
+    """Return the embedding model (cached singleton)."""
     return OllamaEmbeddings(
-        model=config.EMBEDDING_MODEL,
-        base_url=config.OLLAMA_BASE_URL,
+        model=settings.embedding_model,
+        base_url=settings.ollama_base_url,
     )
 
-def get_vision_llm():
-    """Returns Moondream for vision tasks"""
+
+@lru_cache
+def get_vision_llm() -> ChatOllama:
+    """Return the vision LLM for image captioning (cached singleton)."""
     return ChatOllama(
-        model="moondream",
+        model=settings.vision_model,
         temperature=0,
-        base_url=config.OLLAMA_BASE_URL,
+        base_url=settings.ollama_base_url,
         streaming=True,
         keep_alive=-1,
         num_ctx=8192,

@@ -13,9 +13,11 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableConfig
 from ai.state import AgentState
 from ai.llm import get_llm
-from ai.memory import _build_memory_context
+from ai.memory import build_memory_context
+from core.config import settings
+from core.logger import get_logger
 
-llm = get_llm()
+logger = get_logger(__name__)
 
 
 async def generate(state: AgentState, config: RunnableConfig):
@@ -27,7 +29,7 @@ async def generate(state: AgentState, config: RunnableConfig):
     question = state["query"]
     context = "\n\n".join([doc.page_content for doc in state["documents"]])
     chat_history = state.get("chat_history", [])
-    memory_context = _build_memory_context(chat_history)
+    memory_context = build_memory_context(chat_history)
 
     system_base = (
         "You are a technical assistant. "
@@ -49,7 +51,7 @@ async def generate(state: AgentState, config: RunnableConfig):
         ]
     )
 
-    chain = prompt | llm.with_config({"tags": ["generate_node"]}) | StrOutputParser()
+    chain = prompt | get_llm().with_config({"tags": ["generate_node"]}) | StrOutputParser()
     response = await chain.ainvoke({"question": question}, config=config)
 
     return {"answer": response}
@@ -61,7 +63,7 @@ def grade_answer(state: AgentState):
     answer = state["answer"]
     retries = state.get("retries", 0)
 
-    if retries >= 2:
+    if retries >= settings.max_retries:
         return "useful"
     
     system_prompt = """You are a grader assessing whether an answer addresses a user question.
@@ -79,7 +81,7 @@ def grade_answer(state: AgentState):
         ("human", "Question: {query}\n\nAnswer: {answer}")
     ])
 
-    grader_chain = prompt | llm | StrOutputParser()
+    grader_chain = prompt | get_llm() | StrOutputParser()
     
     result = grader_chain.invoke({"query": question, "answer": answer}).strip().lower()
 

@@ -10,9 +10,7 @@ RUN pip install uv
 
 COPY . .
 
-RUN uv pip install --system -e .
-
-COPY . .
+RUN uv pip install --system .
 
 ENV PYTHONPATH=/app/backend
 EXPOSE 8000

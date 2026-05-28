@@ -6,9 +6,11 @@ a context block that fits within the LLM's token budget.
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from ai.llm import get_llm
 
-llm = get_llm()
+from ai.llm import get_llm
+from core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def _format_chat_messages(messages: list[dict]) -> str:
@@ -23,7 +25,7 @@ def _format_chat_messages(messages: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _build_memory_context(chat_history: list[dict]) -> str:
+def build_memory_context(chat_history: list[dict]) -> str:
     """Keep recent messages verbatim and summarize older conversation."""
     if not chat_history:
         return ""
@@ -40,15 +42,19 @@ def _build_memory_context(chat_history: list[dict]) -> str:
                 (
                     "system",
                     "Summarize the prior conversation for assistant memory. "
-                    "Capture user goals, constraints, preferences, and unresolved topics in 4 concise bullet points max."
+                    "Capture user goals, constraints, preferences, and unresolved topics in 4 concise bullet points max.",
                 ),
                 ("human", "Conversation:\n{conversation}"),
             ]
         )
-        summarize_chain = summarize_prompt | llm | StrOutputParser()
-        older_summary = summarize_chain.invoke(
-            {"conversation": _format_chat_messages(older_messages)}
-        ).strip()
+        summarize_chain = summarize_prompt | get_llm() | StrOutputParser()
+        try:
+            older_summary = summarize_chain.invoke(
+                {"conversation": _format_chat_messages(older_messages)}
+            ).strip()
+        except Exception as e:
+            logger.warning("Memory summarization failed: %s", e)
+            older_summary = _format_chat_messages(older_messages[-2:])
 
     memory_sections = []
     if older_summary:

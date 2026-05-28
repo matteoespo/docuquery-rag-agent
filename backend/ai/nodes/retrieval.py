@@ -12,19 +12,19 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser, RetryOutputParser
 from langchain_core.output_parsers import StrOutputParser
 from ai.state import AgentState
-from api.models import RetrievalEvalRequest
-import core.config as config
+from api.models import RetrievalEvaluation
+from core.config import settings
 from ai.llm import get_llm, get_embeddings
+from core.logger import get_logger
 
-llm = get_llm()
-embeddings = get_embeddings()
-vector_db = Chroma(persist_directory=config.DB_DIR, embedding_function=embeddings)
+logger = get_logger(__name__)
 
 
 def retrieve(state: AgentState):
     """Node to retrieve relevant documents from the vector database based on the agent's query"""
     question = state["query"]
-    docs = vector_db.similarity_search(question, k=3)
+    vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=get_embeddings())
+    docs = vector_db.similarity_search(question, k=settings.retrieval_k)
     return {"documents": docs}
 
 
@@ -38,8 +38,8 @@ def check_if_more_info_needed(state: AgentState):
         
     context = "\n\n".join([doc.page_content for doc in docs])
 
-    parser = PydanticOutputParser(pydantic_object=RetrievalEvalRequest)
-    retry_parser = RetryOutputParser.from_llm(parser=parser, llm=llm)
+    parser = PydanticOutputParser(pydantic_object=RetrievalEvaluation)
+    retry_parser = RetryOutputParser.from_llm(parser=parser, llm=get_llm())
 
     system_prompt = """You are a grader assessing relevance of retrieved documents to a user question.
 
@@ -60,18 +60,18 @@ def check_if_more_info_needed(state: AgentState):
         ("human", "Question: {query}\n\nRetrieved Documents: {context}")
     ]).partial(format_instructions=parser.get_format_instructions())
 
-    base_chain = prompt | llm | StrOutputParser()
+    base_chain = prompt | get_llm() | StrOutputParser()
 
     try:
         raw_response = base_chain.invoke({"query": question, "context": context})
         route = parser.invoke(raw_response)
     except Exception as e:
-        print(f"\n[EVAL DEBUG] Initial parse failed.\nOutput: {raw_response}\nError: {e}\n")
+        logger.warning("Initial parse failed. Output: %s, Error: %s", raw_response, e)
         try:
             prompt_value = prompt.format_prompt(query=question, context=context)
             route = retry_parser.parse_with_prompt(raw_response, prompt_value)
         except Exception as retry_e:
-            print(f"\n[EVAL DEBUG] Retry parse failed! Error: {retry_e}\n")
+            logger.warning("Retry parse failed! Error: %s", retry_e)
             return "vector_store"
 
     return route.datasource

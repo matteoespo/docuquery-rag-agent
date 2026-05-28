@@ -1,25 +1,55 @@
+"""FastAPI application entry point."""
+
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from api.routers import router
 from ai.agent import load_agent
+from core.config import settings
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup / shutdown lifecycle."""
+    logger.info("Loading agent...")
+    try:
+        app.state.agent = load_agent()
+        logger.info("Agent loaded successfully")
+    except Exception as e:
+        logger.error("Failed to load agent: %s", e)
+        app.state.agent = None
+    yield
+
 
 app = FastAPI(
     title="DocuQuery RAG Agent",
-    description="Local RAG system for querying technical documentation using Llama3.1 and Ollama.",
-    version="1.0.0"
+    description="Local RAG system for querying technical documentation.",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-app.include_router(router, prefix="/api", tags=["Agentic RAG"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router)
+
 
 @app.get("/health")
-async def health_check():
-    """Status check for docker"""
-    return {"status": "running", "model": "llama3.1", "db": "chromadb"}
-
-# Load the agent into memory at startup
-try:
-    print("Loading the agent...")
-    app.state.agent = load_agent()
-    print("Agent loaded successfully!")
-except Exception as e:
-    print(f"Error loading the agent: {e}")
-    app.state.agent = None
+async def health_check() -> dict:
+    """Status check for Docker."""
+    return {
+        "status": "running",
+        "model": settings.llm_model,
+        "db": "chromadb",
+        "agent_loaded": app.state.agent is not None,
+    }
