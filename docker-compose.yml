@@ -17,12 +17,18 @@ services:
       - 1.1.1.1
     volumes:
       - ollama_storage:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # FastAPI Backend
   api:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: ./backend/Dockerfile
     container_name: docuquery-rag-api
     ports:
       - "8000:8000"
@@ -30,23 +36,32 @@ services:
       - ./data:/app/data
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     env_file:
       - .env
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  # Streamlit Frontend
+  # Next.js Frontend
   web:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: docuquery-rag-web
     ports:
-      - "8501:8501"
-    env_file:
-      - .env
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 
 volumes:

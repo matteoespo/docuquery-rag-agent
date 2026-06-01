@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
         logger.info("Agent loaded successfully")
     except Exception as e:
         logger.error("Failed to load agent: %s", e)
-        app.state.agent = None
+        raise
     yield
 
 
@@ -35,7 +35,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -6,13 +6,17 @@ from typing import Literal
 
 class ChatMessage(BaseModel):
     """A single chat message."""
-    role: str
+    role: Literal["user", "assistant", "system"]
     content: str
 
 
 class QueryRequest(BaseModel):
     """Incoming chat query with optional conversation history."""
-    query: str
+    query: str = Field(
+        min_length=1,
+        max_length=5000,
+        description="The user's question (1-5000 characters).",
+    )
     chat_history: list[ChatMessage] = Field(
         default_factory=list,
         max_length=50,

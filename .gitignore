@@ -15,8 +15,31 @@ tests/data/chroma_db/*
 # Secret keys
 .env
 
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Test / coverage
+.coverage
+htmlcov/
+
+# Type checking / linting
+.mypy_cache/
+.ruff_cache/
+
+# Logs and databases
+*.log
+*.db
+
+# OS files
+.DS_Store
+
 # Other
 notes.txt
 .agents
 .claude
 debug
+
+# deprecated
+old_frontend/

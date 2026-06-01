@@ -52,6 +52,13 @@ async def upload_pdf(
                 detail=f"File '{safe_name}' exceeds the {settings.max_upload_size_mb} MB limit.",
             )
 
+        # Validate PDF magic bytes (%PDF-)
+        if not contents[:5].startswith(b"%PDF-"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"File '{safe_name}' is not a valid PDF (bad magic bytes).",
+            )
+
         (dest_dir / safe_name).write_bytes(contents)
         logger.info("Saved upload: %s (%d bytes)", safe_name, len(contents))
 

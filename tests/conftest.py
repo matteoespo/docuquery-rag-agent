@@ -2,8 +2,6 @@
 import os
 import sys
 
-# Chroma pulls protobuf codegen that breaks with newer protobuf unless this is set.
-os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _backend_root = os.path.join(_project_root, "backend")

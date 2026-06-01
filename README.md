@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat&logo=langchain&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat&logo=langgraph&logoColor=white)
@@ -20,7 +20,7 @@ This project runs entirely locally using open-source LLMs. It features a microse
 
 The system is fully containerized and divided into three main microservices:
 
-* **Frontend (Streamlit):** A reactive, chat-based UI. Features dynamic state management, real-time metrics, and document ingestion.
+* **Frontend (Next.js):** Reactive chat-based UI built with Next.js 16, TailwindCSS v4, and Framer Motion. Features dynamic state management via Zustand, real-time metrics, and document ingestion.
 * **Backend API (FastAPI):** Handles routing, input/output validation via Pydantic, and file uploads.
 * **AI Engine (LangChain & Ollama):** 
     * **LLM:** `Llama 3.2 (3B)` via Ollama for local reasoning.
@@ -42,7 +42,7 @@ The project has recently evolved from a linear pipeline into an Agentic applicat
 * **Multimodal Ingestion:** Handles multiple PDFs simultaneously. Extracts tabular data as Markdown (via `pdfplumber`) and parses diagrams/images into searchable text using a Vision LLM (`moondream` via `PyMuPDF`).
 * **API Backend:** FastAPI handles document chunking, embedding, and chat routing with robust error handling and telemetry control.
 * **Adaptive Long-Term Memory:** A sliding-window memory approach that preserves the last three messages verbatim for immediate context, while utilizing an LLM-driven summarization chain to compress older interactions into concise bullet points, ensuring long-term continuity without exceeding token limits.
-* **Token Streaming:** Token-by-token generation in the FastAPI backend and Streamlit UI for a faster user experience.
+* **Token Streaming:** Token-by-token generation in the FastAPI backend and Next.js UI for a faster user experience.
 
 ## Roadmap & Next Steps
 The next phase focuses on performance optimization and advanced UX:
@@ -75,5 +75,5 @@ The next phase focuses on performance optimization and advanced UX:
 
 ## Access the Application
 
-* **Web UI:** Navigate to http://localhost:8501 to upload a pdf and start chatting.
+* **Web UI:** Navigate to http://localhost:3000 to upload a pdf and start chatting.
 * **API Docs:** Navigate to http://localhost:8000/docs to test endpoints via Swagger UI.
