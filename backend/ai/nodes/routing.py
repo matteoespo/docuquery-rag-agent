@@ -27,16 +27,17 @@ def router(state: AgentState):
 
     system_prompt = """You are a strict routing system. Your ONLY job is to classify the user's input and output a JSON object.
 
-    The vectorstore contains technical manuals, documentation, and product specifications (including simulators, software, and hardware).
+    The vectorstore contains technical manuals, documentation, research papers, and product specifications.
 
     Route to 'vector_store' if the question is:
-    - Asking for technical information, product details, or comparisons (e.g., "What is the best simulator?").
-    - Asking about features, sensors, specifications, or how to operate a system.
-    - Related to technical concepts that might be found in a manual.
+    - Asking for technical information, product details, conceptual explanations, or comparisons.
+    - Explicitly asking to use the "context" or referring to an "uploaded document/paper".
+    - Related to ANY technical, theoretical, or engineering concepts that might be found in a paper or manual.
+    - Asking about features, specifications, or how to operate a system.
 
-    Route to 'out_of_scope' if the question is:
-    - General chat, greetings ("hi", "hello"), or completely unrelated topics (weather, math, cooking).
-    - Asking you to write code, scripts, or programming algorithms.
+    Route to 'out_of_scope' ONLY if the question is:
+    - General chat, simple greetings ("hi", "hello"), or completely unrelated topics (weather, cooking, pop culture, etc).
+    - Obviously malicious or completely non-technical.
 
     CRITICAL RULE: DO NOT output a JSON schema definition. DO NOT output "properties" or "type".
     You must ONLY output a valid JSON object matching exactly one of these two formats:
