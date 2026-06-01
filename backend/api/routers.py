@@ -4,6 +4,7 @@ import asyncio
 import json
 from collections.abc import AsyncGenerator
 from pathlib import Path
+import os
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
@@ -14,6 +15,7 @@ from ai.state import AgentState
 from api.models import QueryRequest
 from core.config import settings
 from core.logger import get_logger
+from langsmith import Client
 
 logger = get_logger(__name__)
 
@@ -82,6 +84,74 @@ async def upload_pdf(
 def ingestion_status() -> dict:
     """Check the progress of background image captioning."""
     return get_ingestion_status()
+
+@router.get("/documents")
+def get_documents() -> dict:
+    """List all uploaded PDF documents."""
+    dest_dir = Path(settings.manual_path)
+    if not dest_dir.exists():
+        return {"documents": []}
+    
+    docs = []
+    for file_path in dest_dir.glob("*.pdf"):
+        # Get file size in MB
+        size_mb = file_path.stat().st_size / (1024 * 1024)
+        docs.append({
+            "filename": file_path.name,
+            "size_mb": round(size_mb, 2)
+        })
+    return {"documents": docs}
+
+@router.get("/analytics")
+def get_analytics() -> dict:
+    """Get analytics data from LangSmith."""
+    project_name = os.getenv("LANGSMITH_PROJECT", "default")
+    try:
+        client = Client()
+        runs = list(client.list_runs(
+            project_name=project_name,
+            execution_order=1,
+            limit=100
+        ))
+        
+        total_requests = len(runs)
+        successes = 0
+        latencies = []
+        total_tokens = 0
+        
+        for run in runs:
+            if str(run.status).lower() == "success":
+                successes += 1
+            
+            latency = (run.end_time - run.start_time).total_seconds() if run.end_time and run.start_time else 0
+            latencies.append(latency)
+            
+            tokens = (run.prompt_tokens or 0) + (run.completion_tokens or 0)
+            total_tokens += tokens
+            
+        success_rate = (successes / total_requests * 100) if total_requests > 0 else 0
+        avg_latency = (sum(latencies) / len(latencies)) if latencies else 0
+        cost_saved = (total_tokens / 1_000_000) * 5.00
+        
+        # Prepare chart data (chronological order)
+        latencies.reverse()
+        
+        return {
+            "total_requests": total_requests,
+            "success_rate": round(success_rate, 1),
+            "avg_latency": round(avg_latency, 2),
+            "est_savings": round(cost_saved, 4),
+            "latencies": latencies,
+        }
+    except Exception as e:
+        logger.error(f"Error fetching analytics: {e}")
+        return {
+            "total_requests": 0,
+            "success_rate": 0,
+            "avg_latency": 0,
+            "est_savings": 0,
+            "latencies": []
+        }
 
 
 @router.post("/chat")

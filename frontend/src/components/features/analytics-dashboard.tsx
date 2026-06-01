@@ -72,11 +72,9 @@ export function AnalyticsDashboard() {
 
   if (!data) return null;
 
-  const avgResponseTime = data.query_response_times.length > 0 
-    ? (data.query_response_times.reduce((a, b) => a + b, 0) / data.query_response_times.length).toFixed(2)
-    : '0.00';
+  const avgResponseTime = data.avg_latency > 0 ? data.avg_latency.toFixed(2) : '0.00';
 
-  const chartData = data.query_response_times.map((time, index) => ({
+  const chartData = data.latencies.map((time, index) => ({
     query: index + 1,
     time: Number(time.toFixed(2))
   }));
@@ -104,25 +102,25 @@ export function AnalyticsDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard 
-          title="Total Documents" 
-          value={data.total_documents} 
-          icon={<FileText size={20} className="text-emerald-500" />} 
+          title="Total Requests" 
+          value={data.total_requests} 
+          icon={<MessageSquare size={20} className="text-emerald-500" />} 
         />
         <MetricCard 
-          title="Total Chunks" 
-          value={data.total_chunks} 
+          title="Success Rate" 
+          value={`${data.success_rate}%`} 
           icon={<Layers size={20} className="text-blue-500" />} 
         />
         <MetricCard 
-          title="Total Queries" 
-          value={data.total_queries} 
-          icon={<MessageSquare size={20} className="text-purple-500" />} 
-        />
-        <MetricCard 
-          title="Avg Response Time" 
+          title="Avg Latency" 
           value={`${avgResponseTime}s`} 
           icon={<Clock size={20} className="text-amber-500" />} 
           trend={<TrendingDown size={14} className="text-emerald-500" />}
+        />
+        <MetricCard 
+          title="Est. Savings" 
+          value={`$${data.est_savings.toFixed(4)}`} 
+          icon={<FileText size={20} className="text-purple-500" />} 
         />
       </div>
 
@@ -179,37 +177,15 @@ export function AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* Stats Table */}
-        <div className="col-span-1 p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 backdrop-blur-sm flex flex-col">
-          <h3 className="text-sm font-medium text-zinc-400 mb-4">Document Stats</h3>
-          <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
-            {data.document_stats.length > 0 ? (
-              <div className="space-y-3">
-                {data.document_stats.map((doc, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-zinc-800/40 border border-zinc-700/30">
-                    <div className="text-sm font-medium text-zinc-200 truncate mb-2" title={doc.filename}>
-                      {doc.filename}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-zinc-500">Pages:</span> <span className="text-zinc-300">{doc.pages}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500">Chunks:</span> <span className="text-zinc-300">{doc.chunks}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-zinc-500">Processing Time:</span> <span className="text-zinc-300">{doc.processing_time.toFixed(1)}s</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-full flex items-center justify-center text-zinc-500 text-sm">
-                No documents processed yet
-              </div>
-            )}
+        {/* Details Note */}
+        <div className="col-span-1 p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/60 backdrop-blur-sm flex flex-col justify-center items-center text-center">
+          <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-4">
+            <BarChart3 size={32} className="text-blue-500" />
           </div>
+          <h3 className="text-lg font-medium text-zinc-200 mb-2">LangSmith Integration</h3>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            Analytics are powered by LangSmith. You can view detailed traces, TTFT, and agent reasoning logs directly in your LangSmith dashboard.
+          </p>
         </div>
       </div>
     </div>

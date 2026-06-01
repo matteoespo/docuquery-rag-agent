@@ -55,10 +55,12 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
       const status = await fetchIngestionStatus();
       set({ ingestionStatus: status });
 
-      if (status.phase !== 'idle' && status.phase !== 'done') {
+      if (status.phase !== 'idle' && status.phase !== 'complete') {
         set({ phase: 'captioning' });
         // Poll again after 3 seconds
         setTimeout(() => get().pollIngestionStatus(), 3000);
+      } else {
+        set({ phase: 'done' });
       }
     } catch {
       // Silently fail polling

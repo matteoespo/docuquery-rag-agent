@@ -19,15 +19,13 @@ export interface IngestionStatus {
 
 export interface DocumentStat {
   filename: string;
-  chunks: number;
-  pages: number;
-  processing_time: number;
+  size_mb: number;
 }
 
 export interface AnalyticsData {
-  total_documents: number;
-  total_chunks: number;
-  total_queries: number;
-  query_response_times: number[];
-  document_stats: DocumentStat[];
+  total_requests: number;
+  success_rate: number;
+  avg_latency: number;
+  est_savings: number;
+  latencies: number[];
 }

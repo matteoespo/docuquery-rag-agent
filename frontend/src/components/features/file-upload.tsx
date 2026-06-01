@@ -1,16 +1,33 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, Check, AlertCircle, X, RefreshCw } from 'lucide-react';
+import { Upload, FileText, Check, AlertCircle, X, RefreshCw, Database } from 'lucide-react';
 import { useUploadStore } from '@/store/upload-store';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { fetchDocuments } from '@/services/api';
 
 export function FileUpload() {
   const { phase, docCount, errorMessage, ingestionStatus, uploadProgress, upload, reset } = useUploadStore();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [serverDocs, setServerDocs] = useState<{filename: string, size_mb: number}[]>([]);
+
+  const loadDocuments = useCallback(async () => {
+    try {
+      const data = await fetchDocuments();
+      setServerDocs(data.documents);
+    } catch (e) {
+      console.error('Failed to load documents:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (phase === 'idle' || phase === 'done') {
+      loadDocuments();
+    }
+  }, [phase, loadDocuments]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setSelectedFiles((prev) => [...prev, ...acceptedFiles]);
@@ -109,6 +126,26 @@ export function FileUpload() {
                 </button>
               </div>
             )}
+
+            {selectedFiles.length === 0 && serverDocs.length > 0 && (
+              <div className="space-y-2 mt-4 pt-4 border-t border-zinc-800/60">
+                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-1 flex items-center gap-2">
+                  <Database size={12} />
+                  Database Documents
+                </h3>
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                  {serverDocs.map((doc, i) => (
+                    <div key={`${doc.filename}-${i}`} className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/20 border border-zinc-700/30">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <FileText size={16} className="text-zinc-500 flex-shrink-0" />
+                        <span className="text-sm text-zinc-400 truncate">{doc.filename}</span>
+                      </div>
+                      <span className="text-xs text-zinc-500">{doc.size_mb} MB</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -185,6 +222,26 @@ export function FileUpload() {
             >
               Upload more files
             </button>
+            
+            {serverDocs.length > 0 && (
+              <div className="w-full space-y-2 mt-8 pt-4 border-t border-zinc-800/60 text-left">
+                <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-1 flex items-center gap-2">
+                  <Database size={12} />
+                  Database Documents
+                </h3>
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                  {serverDocs.map((doc, i) => (
+                    <div key={`${doc.filename}-${i}`} className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/20 border border-zinc-700/30">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <FileText size={16} className="text-zinc-500 flex-shrink-0" />
+                        <span className="text-sm text-zinc-400 truncate">{doc.filename}</span>
+                      </div>
+                      <span className="text-xs text-zinc-500">{doc.size_mb} MB</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 

@@ -6,6 +6,7 @@ export const ENDPOINTS = {
   INGESTION_STATUS: `${API_BASE_URL}/api/ingestion/status`,
   HEALTH: `${API_BASE_URL}/health`,
   ANALYTICS: `${API_BASE_URL}/api/analytics`,
+  DOCUMENTS: `${API_BASE_URL}/api/documents`,
 } as const;
 
 export const INITIAL_MESSAGE: { role: 'assistant'; content: string } = {

@@ -81,3 +81,9 @@ export async function fetchAnalytics(): Promise<AnalyticsData> {
   if (!response.ok) throw new Error(`Failed to fetch analytics: ${response.status}`);
   return response.json();
 }
+
+export async function fetchDocuments(): Promise<{ documents: { filename: string; size_mb: number }[] }> {
+  const response = await fetch(ENDPOINTS.DOCUMENTS);
+  if (!response.ok) throw new Error(`Failed to fetch documents: ${response.status}`);
+  return response.json();
+}
