@@ -51,22 +51,29 @@ The next phase focuses on performance optimization and advanced UX:
 
 ## Quick Start
 
+### Prerequisites
+* **Docker & Docker Compose** installed.
+* **NVIDIA Container Toolkit** installed (if using Linux/WSL) to enable GPU passthrough for the Ollama container.
+
 1. **Clone the repository:**
     ```bash
     git clone https://github.com/matteoespo/docuquery-rag-agent.git
     cd docuquery-rag-agent
     ```
 
-2. **Deploy the stack with Docker**
+2. **Configure Environment Variables:**
+    Copy the example environment file and fill in your keys (especially your `LANGSMITH_API_KEY` for telemetry):
+    ```bash
+    cp .env.example .env
+    ```
 
+3. **Deploy the stack with Docker:**
     ```bash
     docker-compose up -d --build
     ```
 
-3. **Pull the local models**
-
+4. **Pull the local models:**
     *Run inside the Ollama container:*
-
     ```bash
     docker exec -it docuquery-rag-ollama ollama pull llama3.2:3b
     docker exec -it docuquery-rag-ollama ollama pull moondream
