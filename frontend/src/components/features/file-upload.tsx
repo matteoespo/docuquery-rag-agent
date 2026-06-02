@@ -25,6 +25,7 @@ export function FileUpload() {
 
   useEffect(() => {
     if (phase === 'idle' || phase === 'done') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadDocuments();
     }
   }, [phase, loadDocuments]);

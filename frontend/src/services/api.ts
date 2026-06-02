@@ -1,5 +1,5 @@
 import { ENDPOINTS } from '@/constants';
-import type { ChatMessage, UploadResponse, IngestionStatus, AnalyticsData } from '@/types';
+import type { UploadResponse, IngestionStatus, AnalyticsData } from '@/types';
 
 export async function* streamChat(
   query: string,

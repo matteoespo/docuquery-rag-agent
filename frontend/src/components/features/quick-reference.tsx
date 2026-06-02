@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, HelpCircle, AlertTriangle, Info, CheckCircle2, ChevronRight, Server, Database, BrainCircuit, MessageSquare } from 'lucide-react';
+import { BookOpen, HelpCircle, AlertTriangle, Info, CheckCircle2, Server, Database, BrainCircuit, MessageSquare } from 'lucide-react';
 
 type Tab = 'getting-started' | 'architecture' | 'troubleshooting';
 
@@ -86,7 +85,7 @@ function GettingStartedContent() {
         <h3 className="text-lg font-medium text-zinc-200">How to use the system:</h3>
         
         <Step number={1} title="Upload your PDFs">
-          Click the "Upload PDF" button in the sidebar or toggle the right panel. Drag and drop your technical documents. The system will extract text and tables immediately.
+          Click the &quot;Upload PDF&quot; button in the sidebar or toggle the right panel. Drag and drop your technical documents. The system will extract text and tables immediately.
         </Step>
         
         <Step number={2} title="Wait for Background Processing">
