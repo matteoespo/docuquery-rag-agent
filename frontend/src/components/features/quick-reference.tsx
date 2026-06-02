@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, HelpCircle, AlertTriangle, Info, CheckCircle2, Server, Database, BrainCircuit, MessageSquare } from 'lucide-react';
 
 type Tab = 'getting-started' | 'architecture' | 'troubleshooting';
