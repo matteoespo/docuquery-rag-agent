@@ -24,7 +24,6 @@ def test_check_if_more_info_needed_no_documents():
 @patch("backend.ai.nodes.retrieval.ChatPromptTemplate.from_messages")
 @patch("backend.ai.nodes.retrieval.get_llm")
 def test_check_if_more_info_needed_with_docs_routes_vector_store(mock_get_llm, mock_from_messages):
-    mock_llm = mock_get_llm.return_value
     # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
     mock_prompt_partial = MagicMock()
     mock_after_llm = MagicMock()
@@ -45,7 +44,6 @@ def test_check_if_more_info_needed_with_docs_routes_vector_store(mock_get_llm, m
 @patch("backend.ai.nodes.retrieval.ChatPromptTemplate.from_messages")
 @patch("backend.ai.nodes.retrieval.get_llm")
 def test_check_if_more_info_needed_with_docs_routes_more_info(mock_get_llm, mock_from_messages):
-    mock_llm = mock_get_llm.return_value
     # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
     mock_prompt_partial = MagicMock()
     mock_after_llm = MagicMock()
@@ -66,7 +64,6 @@ def test_check_if_more_info_needed_with_docs_routes_more_info(mock_get_llm, mock
 @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
 @patch("backend.ai.nodes.generation.get_llm")
 def test_generate_invokes_chain_with_context(mock_get_llm, mock_from_messages):
-    mock_llm = mock_get_llm.return_value
     mock_prompt = MagicMock()
     mock_after_llm = MagicMock()
     mock_chain = MagicMock()
