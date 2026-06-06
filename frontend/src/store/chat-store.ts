@@ -24,7 +24,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     id: 'initial-message',
     role: 'assistant',
     content: INITIAL_MESSAGE.content,
-    timestamp: 'Just now',
+    timestamp: '',
   }],
   isStreaming: false,
   error: null,
@@ -74,7 +74,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         id: 'initial-message',
         role: 'assistant',
         content: INITIAL_MESSAGE.content,
-        timestamp: 'Just now',
+        timestamp: '',
       }],
       error: null,
     });

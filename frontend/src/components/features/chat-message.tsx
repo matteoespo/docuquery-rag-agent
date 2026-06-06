@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Bot } from 'lucide-react';
 import type { ChatMessage as ChatMessageType } from '@/types';
@@ -13,6 +14,19 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const isEmpty = !message.content;
+
+  // Compute timestamp client-side to avoid SSR timezone mismatch
+  const [displayTimestamp, setDisplayTimestamp] = useState(message.timestamp);
+
+  useEffect(() => {
+    if (!message.timestamp) {
+      setDisplayTimestamp(
+        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      );
+    } else {
+      setDisplayTimestamp(message.timestamp);
+    }
+  }, [message.timestamp]);
 
   return (
     <motion.div
@@ -42,7 +56,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div className="flex items-center gap-2 px-1 text-xs text-zinc-500">
           <span>{isUser ? 'You' : 'DocuQuery'}</span>
           <span>•</span>
-          <span>{message.timestamp}</span>
+          <span>{displayTimestamp}</span>
         </div>
 
         {/* Message bubble */}
