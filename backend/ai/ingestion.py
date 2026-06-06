@@ -300,3 +300,23 @@ def enrich_with_images(pdf_files: list[str]):
     _update_status(phase="complete",
                    detail=f"Done — {len(chunks)} image chunks in {elapsed:.1f}s")
     logger.info("Phase 2 complete: %d image chunks added in %.1fs", len(chunks), elapsed)
+
+
+def delete_document_vectors(file_path: str) -> int:
+    """Delete all ChromaDB vectors associated with the given PDF file path.
+
+    Returns the number of deleted vectors.
+    """
+    vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=get_embeddings())
+    collection = vector_db._collection
+
+    results = collection.get(where={"source": file_path})
+    matching_ids = results["ids"]
+
+    if not matching_ids:
+        logger.info("No vectors found for source: %s", file_path)
+        return 0
+
+    collection.delete(ids=matching_ids)
+    logger.info("Deleted %d vectors for source: %s", len(matching_ids), file_path)
+    return len(matching_ids)

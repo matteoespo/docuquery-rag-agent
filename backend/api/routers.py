@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTasks
 
-from ai.ingestion import enrich_with_images, get_ingestion_status, ingest_manual
+from ai.ingestion import delete_document_vectors, enrich_with_images, get_ingestion_status, ingest_manual
 from ai.state import AgentState
 from api.models import QueryRequest
 from core.config import settings
@@ -101,6 +101,28 @@ def get_documents() -> dict:
             "size_mb": round(size_mb, 2)
         })
     return {"documents": docs}
+
+
+@router.delete("/documents/{filename}")
+def delete_document(filename: str) -> dict:
+    """Delete a PDF document and its associated ChromaDB vectors."""
+    if any(c in filename for c in ("/", "\\", "..")):
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+
+    file_path = Path(settings.manual_path) / filename
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Document '{filename}' not found.")
+
+    file_path.unlink()
+    logger.info("Deleted file: %s", file_path)
+
+    vectors_deleted = delete_document_vectors(str(file_path))
+
+    return {
+        "message": f"Document '{filename}' deleted successfully.",
+        "vectors_deleted": vectors_deleted,
+    }
+
 
 @router.get("/analytics")
 def get_analytics() -> dict:

@@ -87,3 +87,14 @@ export async function fetchDocuments(): Promise<{ documents: { filename: string;
   if (!response.ok) throw new Error(`Failed to fetch documents: ${response.status}`);
   return response.json();
 }
+
+export async function deleteDocument(filename: string): Promise<{ message: string; vectors_deleted: number }> {
+  const response = await fetch(`${ENDPOINTS.DOCUMENTS}/${encodeURIComponent(filename)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Delete failed: ${response.status}`);
+  }
+  return response.json();
+}
