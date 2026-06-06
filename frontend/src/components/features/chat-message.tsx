@@ -15,18 +15,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const isEmpty = !message.content;
 
-  // Compute timestamp client-side to avoid SSR timezone mismatch
-  const [displayTimestamp, setDisplayTimestamp] = useState(message.timestamp);
-
+  const [mounted, setMounted] = useState(false);
+  
   useEffect(() => {
-    if (!message.timestamp) {
-      setDisplayTimestamp(
-        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      );
-    } else {
-      setDisplayTimestamp(message.timestamp);
-    }
-  }, [message.timestamp]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  // Compute timestamp client-side to avoid SSR timezone mismatch
+  const displayTimestamp = message.timestamp || (mounted ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
 
   return (
     <motion.div

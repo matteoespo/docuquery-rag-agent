@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 
 export function FileUpload() {
   const {
-    phase, docCount, errorMessage, ingestionStatus, uploadProgress,
+    phase, errorMessage, ingestionStatus, uploadProgress,
     serverDocs, isDeleting,
     upload, reset, fetchServerDocs, deleteDoc,
   } = useUploadStore();
@@ -61,8 +61,8 @@ export function FileUpload() {
     return <StatusBadge status="waiting" />;
   };
 
-  // Shared document list component with delete buttons
-  const DocumentList = ({ showDelete = true }: { showDelete?: boolean }) => (
+  // Shared document list render function
+  const renderDocumentList = (showDelete = true) => (
     <div className="space-y-2">
       <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-1 flex items-center gap-2">
         <Database size={12} />
@@ -267,7 +267,7 @@ export function FileUpload() {
             </div>
 
             {/* Document list with delete */}
-            {serverDocs.length > 0 && <DocumentList />}
+            {serverDocs.length > 0 && renderDocumentList()}
 
             {/* Upload more section */}
             <div className="pt-2 border-t border-zinc-800/60 space-y-4">
