@@ -17,14 +17,19 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
           
-      - name: Approve a PR
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Inject Co-author and Enable Auto-merge
+        run: |
+          # Fetch the current PR body
+          PR_BODY=$(gh pr view "$PR_URL" --json body -q .body)
           
-      - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto --merge "$PR_URL"
+          # Update the PR body to include the co-author so you get the contribution badge
+          gh pr edit "$PR_URL" --body "$PR_BODY
+          
+          Co-authored-by: matteoespo <matteoespositomarroccella@gmail.com>"
+          
+          # Approve and enable auto-merge (using squash to ensure the body goes into the commit message)
+          gh pr review --approve "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}

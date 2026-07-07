@@ -31,11 +31,17 @@ jobs:
           for pr in $prs; do
             echo "Processing PR #$pr"
             
+            # Add co-author to the PR body to get contribution badges
+            PR_BODY=$(gh pr view "$pr" --json body -q .body)
+            gh pr edit "$pr" --body "$PR_BODY
+            
+            Co-authored-by: matteoespo <matteoespositomarroccella@gmail.com>"
+            
             # Approve the PR (we ignore failure in case it's already approved)
             gh pr review "$pr" --approve || echo "Could not approve (maybe already approved)"
             
-            # Attempt to merge the PR
-            gh pr merge "$pr" --merge || echo "Failed to merge PR #$pr"
+            # Attempt to squash merge the PR
+            gh pr merge "$pr" --squash || echo "Failed to merge PR #$pr"
             
             # Sleep briefly to avoid hitting rate limits
             sleep 2
