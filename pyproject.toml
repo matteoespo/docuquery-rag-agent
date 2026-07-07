@@ -23,7 +23,7 @@ dependencies = [
     "python-dotenv>=1.0.1,<2.0.0",
     "python-multipart>=0.0.9,<1.0.0",
     "uvicorn>=0.29.0,<1.0.0",
-    "streamlit==1.56.0",
+    "streamlit==1.59.0",
     "requests==2.33.1",
     "protobuf>=5.29.6",
     "pydantic-settings>=2.14.1",
