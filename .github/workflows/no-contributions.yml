@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Close Issue
         if: github.event_name == 'issues' && github.event.issue.user.login != github.repository_owner
-        uses: actions/github-script@v6
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.issues.createComment({
@@ -30,7 +30,7 @@ jobs:
 
       - name: Close Pull Request
         if: github.event_name == 'pull_request' && github.event.pull_request.user.login != github.repository_owner
-        uses: actions/github-script@v6
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.issues.createComment({
