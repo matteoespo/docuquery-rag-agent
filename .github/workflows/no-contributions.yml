@@ -1,0 +1,47 @@
+name: Auto-close Issues and PRs
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  auto_close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close Issue
+        if: github.event_name == 'issues' && github.event.issue.user.login != github.repository_owner
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "👋 Thanks for your interest! However, this is a personal project used for learning and continuous development. As stated in the README, **I do not accept contributions, issues, or pull requests**. This issue is being automatically closed."
+            })
+            github.rest.issues.update({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed'
+            })
+
+      - name: Close Pull Request
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login != github.repository_owner
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "👋 Thanks for your interest! However, this is a personal project used for learning and continuous development. As stated in the README, **I do not accept contributions, issues, or pull requests**. This pull request is being automatically closed."
+            })
+            github.rest.pulls.update({
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed'
+            })
