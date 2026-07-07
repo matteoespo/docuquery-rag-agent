@@ -1,4 +1,4 @@
-# 🚀 DocuQuery RAG Agent
+# DocuQuery RAG Agent
 
 <div align="center">
   
