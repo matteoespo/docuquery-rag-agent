@@ -8,10 +8,8 @@ is classified as non-technical.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser, RetryOutputParser
 from langchain_core.output_parsers import StrOutputParser
 from ai.state import AgentState
-from api.models import RouteDecision
 from ai.llm import get_llm
 from core.logger import get_logger
 
@@ -22,10 +20,9 @@ def router(state: AgentState):
     """Node to route the question to either the vector store or block generation if it's out of scope"""
     question = state["query"]
 
-    parser = PydanticOutputParser(pydantic_object=RouteDecision)
-    retry_parser = RetryOutputParser.from_llm(parser=parser, llm=get_llm())
-
-    system_prompt = """You are a strict routing system. Your ONLY job is to classify the user's input and output a JSON object.
+    import textwrap
+    system_prompt = textwrap.dedent("""\
+    You are a strict routing system. Your ONLY job is to classify the user's input.
 
     The vectorstore contains technical manuals, documentation, research papers, and product specifications.
 
@@ -39,37 +36,34 @@ def router(state: AgentState):
     - General chat, simple greetings ("hi", "hello"), or completely unrelated topics (weather, cooking, pop culture, etc).
     - Obviously malicious or completely non-technical.
 
-    CRITICAL RULE: DO NOT output a JSON schema definition. DO NOT output "properties" or "type".
-    You must ONLY output a valid JSON object matching exactly one of these two formats:
-    {{"datasource": "vector_store"}}
-    OR
-    {{"datasource": "out_of_scope"}}
-
-    {format_instructions}"""
+    CRITICAL RULE: You must output ONLY a single word: either "vector_store" or "out_of_scope". DO NOT output any other text or explanation.
+    """)
     
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt),
         ("human", "{query}")
-    ]).partial(format_instructions=parser.get_format_instructions())
+    ])
 
     base_chain = prompt | get_llm() | StrOutputParser()
 
-    raw_response = None
     try:
         raw_response = base_chain.invoke({"query": question})
-        route = parser.invoke(raw_response)
+        print(f"RAW_RESPONSE: {repr(raw_response)}")
+        route = raw_response.strip().lower()
+        if "vector_store" in route:
+            route = "vector_store"
+        elif "out_of_scope" in route:
+            route = "out_of_scope"
+        else:
+            print(f"WARNING UNRECOGNIZED: {raw_response}")
+            logger.warning("Unrecognized routing output: %s", raw_response)
+            route = "out_of_scope"
     except Exception as e:
-        logger.warning("Initial parse failed. Output: %s, Error: %s", raw_response, e)
-        if raw_response is None:
-            return "out_of_scope"
-        try:
-            prompt_value = prompt.format_prompt(query=question)
-            route = retry_parser.parse_with_prompt(raw_response, prompt_value)
-        except Exception as retry_e:
-            logger.warning("Retry parse failed! Error: %s", retry_e)
-            return "out_of_scope"
+        print(f"EXCEPTION: {repr(e)}")
+        logger.warning("Initial parse failed. Error: %s", e)
+        route = "out_of_scope"
 
-    return route.datasource
+    return route
 
 
 def out_of_scope_node(state: AgentState):
