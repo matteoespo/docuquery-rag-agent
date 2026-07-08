@@ -27,7 +27,17 @@ async def generate(state: AgentState, config: RunnableConfig):
     dynamic query placed LAST for byte-for-byte prefix matching across requests.
     """
     question = state["query"]
-    context = "\n\n".join([doc.page_content for doc in state["documents"]])
+    
+    import os
+    context_chunks = []
+    for doc in state["documents"]:
+        source = doc.metadata.get("source", "Unknown Source")
+        if source != "web":
+            source = os.path.basename(str(source))
+        page = doc.metadata.get("page", "Unknown Page")
+        context_chunks.append(f"[Source: {source}, Page: {page}]\n{doc.page_content}")
+    
+    context = "\n\n".join(context_chunks)
     chat_history = state.get("chat_history", [])
     memory_context = build_memory_context(chat_history)
 
@@ -36,7 +46,9 @@ async def generate(state: AgentState, config: RunnableConfig):
         "Use the following pieces of retrieved context to answer the question. "
         "Use conversation memory to keep continuity when relevant. "
         "If you don't know the answer based on the context, say that you don't know. "
-        "Keep the answer concise and professional."
+        "Keep the answer concise and professional. "
+        "CRITICAL: You must explicitly cite the source document name, web link, or page number you used to generate the answer. "
+        "Format citations like [Source: document.pdf, Page: 5] or [Source: https://example.com]."
     )
 
     retrieved_context_block = f"RETRIEVED CONTEXT:\n{context}\n" if context else "RETRIEVED CONTEXT:\n(No documents retrieved)\n"

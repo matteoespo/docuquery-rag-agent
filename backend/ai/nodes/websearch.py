@@ -18,16 +18,13 @@ def websearch(state: AgentState):
     """Search DuckDuckGo and append results to the document list."""
     question = state["query"]
 
+    docs = state.get("documents", [])
     try:
         raw_results = DDGS().text(question, max_results=5)
-        formatted_response = "\n\n".join(
-            [f"Source: {res['href']}\n{res['body']}" for res in raw_results]
-        )
+        for res in raw_results:
+            docs.append(Document(page_content=res['body'], metadata={"source": res['href'], "page": "web"}))
     except Exception as e:
         logger.warning("Web search failed: %s", e)
-        formatted_response = "Web search unavailable."
-
-    web_doc = Document(page_content=formatted_response, metadata={"source": "web"})
-    docs = state.get("documents", []) + [web_doc]
+        docs.append(Document(page_content="Web search unavailable.", metadata={"source": "web", "page": "N/A"}))
 
     return {"documents": docs, "retries": 1}

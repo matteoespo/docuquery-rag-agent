@@ -51,11 +51,7 @@ The project has recently evolved from a linear pipeline into an Agentic applicat
 * **API Backend:** FastAPI handles document chunking, embedding, and chat routing with robust error handling and telemetry control.
 * **Adaptive Long-Term Memory:** A sliding-window memory approach that preserves the last three messages verbatim for immediate context, while utilizing an LLM-driven summarization chain to compress older interactions into concise bullet points, ensuring long-term continuity without exceeding token limits.
 * **Token Streaming:** Token-by-token generation in the FastAPI backend and Next.js UI for a faster user experience.
-
-## Roadmap & Next Steps
-The next phase focuses on performance optimization and advanced UX:
-
-* **Source Citations:** Enhance the agent's output to explicitly cite the source document name, web link, or page number it used to generate the answer.
+* **Source Citations:** The agent's output is enhanced to explicitly cite the source document name, web link, or page number it used to generate the answer.
 
 ## Quick Start
 
