@@ -8,16 +8,14 @@ from backend.ai.nodes.routing import router as router_node
 @patch("backend.ai.nodes.routing.get_llm")
 def test_router_routes_technical_to_vector_store(mock_get_llm, mock_from_messages):
     mock_llm = mock_get_llm.return_value
-    # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
-    mock_prompt_partial = MagicMock()
+    # Build the mock chain: from_messages() -> | llm -> | StrOutputParser -> .invoke()
     mock_after_llm = MagicMock()
     mock_chain = MagicMock()
-    mock_chain.invoke.return_value = '{"datasource": "vector_store"}'
+    mock_chain.invoke.return_value = 'vector_store'
     mock_after_llm.__or__.return_value = mock_chain  # | StrOutputParser()
-    mock_prompt_partial.__or__.return_value = mock_after_llm  # | llm
 
     mock_prompt = MagicMock()
-    mock_prompt.partial.return_value = mock_prompt_partial
+    mock_prompt.__or__.return_value = mock_after_llm  # | llm
     mock_from_messages.return_value = mock_prompt
 
     state = {"query": "How do I reset my router to factory settings?"}
@@ -28,16 +26,14 @@ def test_router_routes_technical_to_vector_store(mock_get_llm, mock_from_message
 @patch("backend.ai.nodes.routing.get_llm")
 def test_router_routes_general_to_out_of_scope(mock_get_llm, mock_from_messages):
     mock_llm = mock_get_llm.return_value
-    # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
-    mock_prompt_partial = MagicMock()
+    # Build the mock chain: from_messages() -> | llm -> | StrOutputParser -> .invoke()
     mock_after_llm = MagicMock()
     mock_chain = MagicMock()
-    mock_chain.invoke.return_value = '{"datasource": "out_of_scope"}'
+    mock_chain.invoke.return_value = 'out_of_scope'
     mock_after_llm.__or__.return_value = mock_chain  # | StrOutputParser()
-    mock_prompt_partial.__or__.return_value = mock_after_llm  # | llm
 
     mock_prompt = MagicMock()
-    mock_prompt.partial.return_value = mock_prompt_partial
+    mock_prompt.__or__.return_value = mock_after_llm  # | llm
     mock_from_messages.return_value = mock_prompt
 
     state = {"query": "Hello! Can you tell me what 100 divided by 4 is?"}

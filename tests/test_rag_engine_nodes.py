@@ -24,16 +24,14 @@ def test_check_if_more_info_needed_no_documents():
 @patch("backend.ai.nodes.retrieval.ChatPromptTemplate.from_messages")
 @patch("backend.ai.nodes.retrieval.get_llm")
 def test_check_if_more_info_needed_with_docs_routes_vector_store(mock_get_llm, mock_from_messages):
-    # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
-    mock_prompt_partial = MagicMock()
+    # Build the mock chain: from_messages() -> | llm -> | StrOutputParser -> .invoke()
     mock_after_llm = MagicMock()
     mock_chain = MagicMock()
-    mock_chain.invoke.return_value = '{"datasource": "vector_store"}'
+    mock_chain.invoke.return_value = 'vector_store'
     mock_after_llm.__or__.return_value = mock_chain  # | StrOutputParser()
-    mock_prompt_partial.__or__.return_value = mock_after_llm  # | llm
 
     mock_prompt = MagicMock()
-    mock_prompt.partial.return_value = mock_prompt_partial
+    mock_prompt.__or__.return_value = mock_after_llm  # | llm
     mock_from_messages.return_value = mock_prompt
 
     docs = [Document(page_content="Torque is 45 Nm for bolt M8.", metadata={})]
@@ -44,16 +42,14 @@ def test_check_if_more_info_needed_with_docs_routes_vector_store(mock_get_llm, m
 @patch("backend.ai.nodes.retrieval.ChatPromptTemplate.from_messages")
 @patch("backend.ai.nodes.retrieval.get_llm")
 def test_check_if_more_info_needed_with_docs_routes_more_info(mock_get_llm, mock_from_messages):
-    # Build the mock chain: from_messages() -> .partial() -> | llm -> | StrOutputParser -> .invoke()
-    mock_prompt_partial = MagicMock()
+    # Build the mock chain: from_messages() -> | llm -> | StrOutputParser -> .invoke()
     mock_after_llm = MagicMock()
     mock_chain = MagicMock()
-    mock_chain.invoke.return_value = '{"datasource": "more_info_needed"}'
+    mock_chain.invoke.return_value = 'more_info_needed'
     mock_after_llm.__or__.return_value = mock_chain  # | StrOutputParser()
-    mock_prompt_partial.__or__.return_value = mock_after_llm  # | llm
 
     mock_prompt = MagicMock()
-    mock_prompt.partial.return_value = mock_prompt_partial
+    mock_prompt.__or__.return_value = mock_after_llm  # | llm
     mock_from_messages.return_value = mock_prompt
 
     docs = [Document(page_content="Unrelated boilerplate text.", metadata={})]
