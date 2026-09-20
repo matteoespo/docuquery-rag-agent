@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     max_upload_files: int = 10
 
     # ── CORS ──
-    cors_origins: str = "http://localhost:8501,http://web:8501"
+    cors_origins: str = "http://localhost:8501,http://web:8501,http://localhost:8000,http://localhost:3000"
     _parsed_cors_origins: list[str] | None = None
 
     @field_validator("cors_origins")
