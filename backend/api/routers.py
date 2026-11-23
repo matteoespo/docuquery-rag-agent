@@ -38,6 +38,9 @@ async def upload_pdf(
     dest_dir = Path(settings.manual_path)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
+    # Validate the whole batch before writing anything, so a bad file
+    # doesn't leave earlier files on disk without being ingested.
+    validated: list[tuple[str, bytes]] = []
     for file in files:
         # Sanitise filename
         safe_name = Path(file.filename or "upload.bin").name
@@ -61,15 +64,21 @@ async def upload_pdf(
                 detail=f"File '{safe_name}' is not a valid PDF (bad magic bytes).",
             )
 
-        (dest_dir / safe_name).write_bytes(contents)
+        validated.append((safe_name, contents))
+
+    saved_paths: list[str] = []
+    for safe_name, contents in validated:
+        dest = dest_dir / safe_name
+        dest.write_bytes(contents)
+        saved_paths.append(str(dest))
         logger.info("Saved upload: %s (%d bytes)", safe_name, len(contents))
 
-    # text + tables
-    pdf_files = await asyncio.to_thread(ingest_manual)
+    # text + tables (only the files in this upload; unchanged files are skipped)
+    ingested = await asyncio.to_thread(ingest_manual, saved_paths)
 
     # image captioning
-    if pdf_files:
-        background_tasks.add_task(enrich_with_images, pdf_files)
+    if ingested:
+        background_tasks.add_task(enrich_with_images, ingested)
 
     return {
         "message": (

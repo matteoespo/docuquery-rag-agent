@@ -4,6 +4,7 @@ import base64
 import hashlib
 import time
 import threading
+from pathlib import Path
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
@@ -118,75 +119,119 @@ def _extract_text_and_tables(file_path: str) -> list[Document]:
     return documents
 
 
-def ingest_manual() -> list[str]:
-    """
-    Phase 1: extract text + tables, chunk, embed into Chroma.
-    Returns the list of PDF file paths so Phase 2 can caption images later.
-    """
-    phase1_start = time.perf_counter()
-    _update_status(phase="text", detail="Extracting text and tables...",
-                   images_done=0, images_total=0)
+def _get_vector_db() -> Chroma:
+    return Chroma(persist_directory=settings.db_dir, embedding_function=get_embeddings())
 
-    if not os.path.exists(settings.manual_path):
-        logger.error("Manual path not found: %s", settings.manual_path)
-        _update_status(phase="idle", detail="")
-        return []
 
-    pdf_files = glob.glob(os.path.join(settings.manual_path, "**/*.pdf"), recursive=True)
-    if not pdf_files:
-        logger.warning("No PDF files found.")
-        _update_status(phase="idle", detail="")
-        return []
-
-    documents = []
-    logger.info("Found %d PDFs. Extracting text and tables...", len(pdf_files))
-
-    for file_path in pdf_files:
-        start = time.perf_counter()
-        docs = _extract_text_and_tables(file_path)
-        documents.extend(docs)
-        elapsed = time.perf_counter() - start
-        logger.info("  ✓ %s — %d pages — %.1fs", os.path.basename(file_path), len(docs), elapsed)
-
-    logger.info("Loaded %d pages", len(documents))
-
-    # Split into chunks
+def _split_documents(documents: list[Document]) -> list[Document]:
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=150,
         separators=["\n\n", "\n", ".", " ", ""]
     )
-    chunks = text_splitter.split_documents(documents)
-    logger.info("Document split into %d chunks", len(chunks))
+    return text_splitter.split_documents(documents)
 
-    # Prepare chunk IDs (hash-based for deduplication)
-    file_hashes = {fp: _file_hash(fp) for fp in pdf_files}
-    chunk_ids = [
-        f"{file_hashes[chunk.metadata['source']]}_{chunk.metadata['page']}_{i}"
-        for i, chunk in enumerate(chunks)
-    ]
 
-    # Embedding model
-    embeddings = get_embeddings()
+def _chunk_ids(prefix: str, chunks: list[Document]) -> list[str]:
+    """IDs that depend only on this file's content: ``{prefix}_{page}_{n}``.
 
-    # Vector DB batched writes
-    vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=embeddings)
-    total_batches = (len(chunks) + settings.chroma_batch_size - 1) // settings.chroma_batch_size
+    ``n`` counts chunks within the same page, so IDs never shift when other
+    files are added or removed.
+    """
+    per_page: dict = {}
+    ids = []
+    for chunk in chunks:
+        page = chunk.metadata["page"]
+        n = per_page.get(page, 0)
+        per_page[page] = n + 1
+        ids.append(f"{prefix}_{page}_{n}")
+    return ids
 
-    for batch_num, i in enumerate(range(0, len(chunks), settings.chroma_batch_size), start=1):
-        batch = chunks[i : i + settings.chroma_batch_size]
-        batch_ids = chunk_ids[i : i + settings.chroma_batch_size]
-        vector_db.add_documents(batch, ids=batch_ids)
-        logger.info(
-            "  Embedded batch %d/%d (%d/%d chunks)",
-            batch_num, total_batches,
-            min(i + settings.chroma_batch_size, len(chunks)), len(chunks)
-        )
+
+def _add_in_batches(vector_db: Chroma, chunks: list[Document], ids: list[str], label: str) -> None:
+    batch_size = settings.chroma_batch_size
+    total_batches = (len(chunks) + batch_size - 1) // batch_size
+    for batch_num, i in enumerate(range(0, len(chunks), batch_size), start=1):
+        vector_db.add_documents(chunks[i : i + batch_size], ids=ids[i : i + batch_size])
+        logger.info("  %s batch %d/%d", label, batch_num, total_batches)
+
+
+def _is_already_ingested(vector_db: Chroma, source: str, file_hash: str) -> bool:
+    """Return True if ``source`` is fully indexed with this exact content.
+
+    Vectors for ``source`` from different content (file overwritten) or from
+    before ``file_hash`` metadata existed are deleted so the file is re-indexed
+    cleanly instead of accumulating stale chunks.
+    """
+    existing = vector_db._collection.get(where={"source": source}, include=["metadatas"])
+    if not existing["ids"]:
+        return False
+    if all((m or {}).get("file_hash") == file_hash for m in existing["metadatas"]):
+        return True
+    vector_db._collection.delete(ids=existing["ids"])
+    logger.info("Removed %d stale vectors for %s", len(existing["ids"]), os.path.basename(source))
+    return False
+
+
+def ingest_manual(file_paths: list[str] | None = None) -> list[str]:
+    """
+    Phase 1: extract text + tables, chunk, embed into Chroma.
+
+    Only ``file_paths`` are processed (defaults to every PDF under
+    ``settings.manual_path``). Files whose current content is already indexed
+    are skipped. Returns the files that were newly ingested, so Phase 2 only
+    captions images for those.
+    """
+    phase1_start = time.perf_counter()
+    _update_status(phase="text", detail="Extracting text and tables...",
+                   images_done=0, images_total=0)
+
+    if file_paths is None:
+        if not os.path.exists(settings.manual_path):
+            logger.error("Manual path not found: %s", settings.manual_path)
+            _update_status(phase="idle", detail="")
+            return []
+        file_paths = glob.glob(os.path.join(settings.manual_path, "**/*.pdf"), recursive=True)
+
+    # Normalise so "source" metadata matches what delete_document() looks up.
+    file_paths = [str(Path(fp)) for fp in file_paths]
+    if not file_paths:
+        logger.warning("No PDF files found.")
+        _update_status(phase="idle", detail="")
+        return []
+
+    vector_db = _get_vector_db()
+    ingested: list[str] = []
+    total_chunks = 0
+
+    for file_path in file_paths:
+        start = time.perf_counter()
+        file_hash = _file_hash(file_path)
+        name = os.path.basename(file_path)
+
+        if _is_already_ingested(vector_db, file_path, file_hash):
+            logger.info("  - %s already indexed, skipping", name)
+            continue
+
+        documents = _extract_text_and_tables(file_path)
+        chunks = _split_documents(documents)
+        for chunk in chunks:
+            chunk.metadata["file_hash"] = file_hash
+
+        if chunks:
+            _add_in_batches(vector_db, chunks, _chunk_ids(file_hash, chunks), label=name)
+        total_chunks += len(chunks)
+        ingested.append(file_path)
+        logger.info("  ✓ %s — %d pages, %d chunks — %.1fs",
+                    name, len(documents), len(chunks), time.perf_counter() - start)
 
     elapsed = time.perf_counter() - phase1_start
-    logger.info("Phase 1 complete: %d PDFs, %d chunks in %.1fs", len(pdf_files), len(chunks), elapsed)
+    logger.info("Phase 1 complete: %d/%d PDFs ingested, %d chunks in %.1fs",
+                len(ingested), len(file_paths), total_chunks, elapsed)
 
-    return pdf_files
+    if not ingested:
+        _update_status(phase="complete", detail="All files were already indexed")
+    return ingested
 
 
 # Phase 2: image captioning
@@ -257,44 +302,25 @@ def enrich_with_images(pdf_files: list[str]):
                    images_done=0, images_total=total_images)
     logger.info("Phase 2: Captioning %d images across %d PDFs...", total_images, len(pdf_files))
 
-    all_image_docs = []
+    chunks: list[Document] = []
+    chunk_ids: list[str] = []
     for file_path in pdf_files:
         start = time.perf_counter()
-        docs = _extract_and_caption_images(file_path)
-        all_image_docs.extend(docs)
-        elapsed = time.perf_counter() - start
-        logger.info("    (%s — %.1fs)", os.path.basename(file_path), elapsed)
+        file_hash = _file_hash(file_path)
+        file_chunks = _split_documents(_extract_and_caption_images(file_path))
+        for chunk in file_chunks:
+            chunk.metadata["file_hash"] = file_hash
+        chunks.extend(file_chunks)
+        # img_ prefix avoids collisions with the Phase 1 text chunk IDs.
+        chunk_ids.extend(_chunk_ids(f"img_{file_hash}", file_chunks))
+        logger.info("    (%s — %.1fs)", os.path.basename(file_path), time.perf_counter() - start)
 
-    if not all_image_docs:
+    if not chunks:
         _update_status(phase="complete", detail="No captionable images found")
         logger.info("No images found to caption.")
         return
 
-    # Chunk the caption documents
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150,
-        separators=["\n\n", "\n", ".", " ", ""]
-    )
-    chunks = text_splitter.split_documents(all_image_docs)
-
-    # Unique IDs prefixed with img_ to avoid collisions with Phase 1
-    file_hashes = {fp: _file_hash(fp) for fp in pdf_files}
-    chunk_ids = [
-        f"img_{file_hashes[chunk.metadata['source']]}_{chunk.metadata['page']}_{i}"
-        for i, chunk in enumerate(chunks)
-    ]
-
-    # Upsert into existing Chroma DB
-    embeddings = get_embeddings()
-    vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=embeddings)
-
-    total_batches = (len(chunks) + settings.chroma_batch_size - 1) // settings.chroma_batch_size
-    for batch_num, i in enumerate(range(0, len(chunks), settings.chroma_batch_size), start=1):
-        batch = chunks[i : i + settings.chroma_batch_size]
-        batch_ids = chunk_ids[i : i + settings.chroma_batch_size]
-        vector_db.add_documents(batch, ids=batch_ids)
-        logger.info("  Image batch %d/%d", batch_num, total_batches)
+    _add_in_batches(_get_vector_db(), chunks, chunk_ids, label="Image")
 
     elapsed = time.perf_counter() - phase2_start
     _update_status(phase="complete",
@@ -307,8 +333,7 @@ def delete_document_vectors(file_path: str) -> int:
 
     Returns the number of deleted vectors.
     """
-    vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=get_embeddings())
-    collection = vector_db._collection
+    collection = _get_vector_db()._collection
 
     results = collection.get(where={"source": file_path})
     matching_ids = results["ids"]
@@ -320,3 +345,10 @@ def delete_document_vectors(file_path: str) -> int:
     collection.delete(ids=matching_ids)
     logger.info("Deleted %d vectors for source: %s", len(matching_ids), file_path)
     return len(matching_ids)
+
+
+if __name__ == "__main__":
+    # Re-index everything in MANUAL_PATH: skips files already indexed with
+    # their current content, and replaces stale/legacy vectors for the rest.
+    # Run from backend/:  python -m ai.ingestion
+    enrich_with_images(ingest_manual())
