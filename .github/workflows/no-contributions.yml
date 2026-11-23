@@ -6,12 +6,18 @@ on:
   pull_request:
     types: [opened]
 
+# Without this the default read-only token can't comment or close,
+# so the job failed instead of closing anything.
+permissions:
+  issues: write
+  pull-requests: write
+
 jobs:
   auto_close:
     runs-on: ubuntu-latest
     steps:
       - name: Close Issue
-        if: github.event_name == 'issues' && github.event.issue.user.login != github.repository_owner
+        if: github.event_name == 'issues' && github.event.issue.user.login != github.repository_owner && github.event.issue.user.type != 'Bot'
         uses: actions/github-script@v9
         with:
           script: |
@@ -29,7 +35,7 @@ jobs:
             })
 
       - name: Close Pull Request
-        if: github.event_name == 'pull_request' && github.event.pull_request.user.login != github.repository_owner
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login != github.repository_owner && github.event.pull_request.user.type != 'Bot'
         uses: actions/github-script@v9
         with:
           script: |

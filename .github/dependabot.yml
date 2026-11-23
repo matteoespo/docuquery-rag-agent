@@ -1,19 +1,36 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  # "uv" (not "pip") so uv.lock is updated too; "pip" only bumped the
+  # version ranges in pyproject.toml and left the lockfile stale.
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      python-minor-patch:
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # Majors that currently break the Next.js lint/build; revisit when supported.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
-    directory: "/"
+    # The Dockerfiles live here, not in the repo root.
+    directories:
+      - "/backend"
+      - "/frontend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -23,3 +40,6 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]

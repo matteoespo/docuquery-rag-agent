@@ -1,5 +1,7 @@
 name: Bulk Merge Open Dependabot PRs
 
+# Manual run: merges every open Dependabot PR that passes the same rules as
+# auto-merge (patch/minor only, CI green, no workflow changes). Others are skipped.
 on:
   workflow_dispatch:
 
@@ -12,39 +14,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Approve and Merge open Dependabot PRs
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge eligible Dependabot PRs
         run: |
-          echo "Fetching open Dependabot PRs..."
-          prs=$(gh pr list --author "dependabot[bot]" --state open --json number -q '.[].number')
-          
-          if [ -z "$prs" ]; then
-            echo "No open Dependabot PRs found."
-            exit 0
-          fi
-          
-          echo "Found PRs: $prs"
-          
+          prs=$(gh pr list --author "app/dependabot" --state open --json number -q '.[].number')
+          [ -z "$prs" ] && { echo "No open Dependabot PRs."; exit 0; }
           for pr in $prs; do
-            echo "Processing PR #$pr"
-            
-            # Add co-author to the PR body to get contribution badges
-            PR_BODY=$(gh pr view "$pr" --json body -q .body)
-            gh pr edit "$pr" --body "$PR_BODY
-            
-            Co-authored-by: matteoespo <matteoespositomarroccella@gmail.com>"
-            
-            # Approve the PR (we ignore failure in case it's already approved)
-            gh pr review "$pr" --approve || echo "Could not approve (maybe already approved)"
-            
-            # Attempt to squash merge the PR
-            gh pr merge "$pr" --squash || echo "Failed to merge PR #$pr"
-            
-            # Sleep briefly to avoid hitting rate limits
+            .github/scripts/dependabot-merge.sh "$pr" || echo "::warning::Failed to merge #$pr"
             sleep 2
           done
-          
-          echo "Done processing all open Dependabot PRs."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          CO_AUTHOR: "matteoespo <matteoespositomarroccella@gmail.com>"
