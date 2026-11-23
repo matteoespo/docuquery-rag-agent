@@ -215,8 +215,9 @@ async def generate_tokens(agent, initial_state: AgentState) -> AsyncGenerator[st
         if event_type == "on_chat_model_start" and "generate_node" in tags:
             generation_count += 1
             if generation_count > 1:
-                separator = "\n\n> **Searching the web for more information...**\n\n"
-                yield f"data: {json.dumps({'token': separator})}\n\n"
+                # The previous answer was rejected by the grader: tell the client
+                # to discard what it has shown before the new answer streams in.
+                yield f"data: {json.dumps({'reset': True, 'status': 'Searching the web for more information...'})}\n\n"
 
         # Stream the raw text tokens
         elif event_type == "on_chat_model_stream" and "generate_node" in tags:

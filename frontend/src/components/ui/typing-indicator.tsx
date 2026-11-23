@@ -24,7 +24,7 @@ const dotVariants: Variants = {
   },
 };
 
-export function TypingIndicator() {
+export function TypingIndicator({ label }: { label?: string }) {
   return (
     <div className="flex items-start gap-3">
       {/* Bubble */}
@@ -44,6 +44,7 @@ export function TypingIndicator() {
           ))}
         </motion.div>
       </div>
+      {label && <span className="pt-2.5 text-sm text-zinc-400">{label}</span>}
     </div>
   );
 }

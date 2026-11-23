@@ -48,13 +48,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }));
 
     try {
-      for await (const token of streamChat(content, history)) {
+      for await (const event of streamChat(content, history)) {
         set((state) => ({
-          messages: state.messages.map((m) =>
-            m.id === assistantMessage.id
-              ? { ...m, content: m.content + token }
-              : m
-          ),
+          messages: state.messages.map((m) => {
+            if (m.id !== assistantMessage.id) return m;
+            // Discard the rejected answer; show the status until new tokens arrive.
+            if (event.type === 'reset') return { ...m, content: '', status: event.status };
+            return { ...m, content: m.content + event.text, status: undefined };
+          }),
         }));
       }
     } catch (err) {

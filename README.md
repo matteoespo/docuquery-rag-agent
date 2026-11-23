@@ -44,6 +44,7 @@ The system is fully containerized and divided into three main microservices:
 The project has recently evolved from a linear pipeline into an Agentic application. Current capabilities include:
 
 * **Stateful Agentic RAG:** Powered by LangGraph, replacing linear chains with a cyclical graph architecture capable of maintaining conversational state and memory.
+* **Follow-up Question Rewriting:** Follow-ups like "what about its voltage?" are rewritten into standalone questions using the chat history before routing, retrieval, and web search, so they find the right documents.
 * **Semantic Query Routing (Guardrails):** The agent dynamically classifies user intent. It intelligently routes technical queries to the Vector DB while instantly blocking out-of-scope questions, reducing latency and token usage.
 * **Self-Reflective Loop (CRAG):** The agent utilizes an internal "grader" node to evaluate its own retrieved documents and generated answers. If it detects a hallucination or poor context, it rejects the answer and tries again.
 * **Web Search Fallback:** If the local document database does not contain the answer, the agent autonomously falls back to querying the web (via DuckDuckGo) to augment its context.

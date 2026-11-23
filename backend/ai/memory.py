@@ -13,7 +13,7 @@ from core.logger import get_logger
 logger = get_logger(__name__)
 
 
-def _format_chat_messages(messages: list[dict]) -> str:
+def format_chat_messages(messages: list[dict]) -> str:
     """Format chat messages into a readable plain-text transcript."""
     lines = []
     for message in messages:
@@ -37,7 +37,7 @@ async def build_memory_context(chat_history: list[dict]) -> str:
     recent_messages = chat_history[-3:]
     older_messages = chat_history[:-3]
 
-    recent_block = _format_chat_messages(recent_messages)
+    recent_block = format_chat_messages(recent_messages)
     older_summary = ""
 
     if older_messages:
@@ -54,11 +54,11 @@ async def build_memory_context(chat_history: list[dict]) -> str:
         summarize_chain = summarize_prompt | get_llm() | StrOutputParser()
         try:
             older_summary = (await summarize_chain.ainvoke(
-                {"conversation": _format_chat_messages(older_messages)}
+                {"conversation": format_chat_messages(older_messages)}
             )).strip()
         except Exception as e:
             logger.warning("Memory summarization failed: %s", e)
-            older_summary = _format_chat_messages(older_messages[-2:])
+            older_summary = format_chat_messages(older_messages[-2:])
 
     memory_sections = []
     if older_summary:
