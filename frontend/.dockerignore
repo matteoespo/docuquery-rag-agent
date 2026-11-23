@@ -1,0 +1,11 @@
+# Build context for frontend/Dockerfile (context: frontend/).
+# Host node_modules must not overwrite the ones `npm install` builds inside
+# the (Alpine/musl) image: native binaries differ between platforms.
+node_modules/
+.next/
+out/
+.env*
+npm-debug.log*
+.git
+Dockerfile
+.dockerignore

@@ -1,0 +1,12 @@
+# Build context for backend/Dockerfile (context: repo root).
+# Allowlist: ignore everything, then re-include only what the API image needs.
+# This keeps .env, data/, .git, .venv, frontend/ etc. out of the image.
+*
+!backend/
+!pyproject.toml
+!uv.lock
+# Required by pyproject.toml (readme = "README.md")
+!README.md
+
+**/__pycache__/
+**/*.py[cod]
