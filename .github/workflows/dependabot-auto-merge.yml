@@ -1,35 +1,35 @@
 name: Dependabot Auto-Merge
 
-on: pull_request
+# Runs after "CI Pipeline" finishes. workflow_run always uses main's copy of
+# this file and checks out main, so no PR code ever runs with a write token.
+# The merge rules live in .github/scripts/dependabot-merge.sh.
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  dependabot:
+  merge:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
     steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v2
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-          
-      - name: Inject Co-author and Enable Auto-merge
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Merge if patch/minor and CI passed
         run: |
-          # Fetch the current PR body
-          PR_BODY=$(gh pr view "$PR_URL" --json body -q .body)
-          
-          # Update the PR body to include the co-author so you get the contribution badge
-          gh pr edit "$PR_URL" --body "$PR_BODY
-          
-          Co-authored-by: matteoespo <matteoespositomarroccella@gmail.com>"
-          
-          # Approve and enable auto-merge (using squash to ensure the body goes into the commit message)
-          gh pr review --approve "$PR_URL"
-          gh pr merge --auto --squash "$PR_URL"
+          for pr in $PRS; do
+            .github/scripts/dependabot-merge.sh "$pr"
+          done
         env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          PRS: ${{ join(github.event.workflow_run.pull_requests.*.number, ' ') }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          CO_AUTHOR: "matteoespo <matteoespositomarroccella@gmail.com>"
