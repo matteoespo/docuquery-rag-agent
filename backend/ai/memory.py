@@ -25,8 +25,12 @@ def _format_chat_messages(messages: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def build_memory_context(chat_history: list[dict]) -> str:
-    """Keep recent messages verbatim and summarize older conversation."""
+async def build_memory_context(chat_history: list[dict]) -> str:
+    """Keep recent messages verbatim and summarize older conversation.
+
+    Async so the summarization LLM call doesn't block the event loop when
+    called from the async ``generate`` node.
+    """
     if not chat_history:
         return ""
 
@@ -49,9 +53,9 @@ def build_memory_context(chat_history: list[dict]) -> str:
         )
         summarize_chain = summarize_prompt | get_llm() | StrOutputParser()
         try:
-            older_summary = summarize_chain.invoke(
+            older_summary = (await summarize_chain.ainvoke(
                 {"conversation": _format_chat_messages(older_messages)}
-            ).strip()
+            )).strip()
         except Exception as e:
             logger.warning("Memory summarization failed: %s", e)
             older_summary = _format_chat_messages(older_messages[-2:])
