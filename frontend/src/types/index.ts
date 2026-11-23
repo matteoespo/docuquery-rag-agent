@@ -5,6 +5,8 @@ export interface ChatMessage {
   timestamp: string;
   /** Set on both messages of a failed turn; excluded from history sent to the backend. */
   isError?: boolean;
+  /** Agent progress shown while the message has no content yet. */
+  status?: string;
 }
 
 export interface UploadResponse {

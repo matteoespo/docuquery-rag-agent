@@ -1,10 +1,15 @@
 import { ENDPOINTS } from '@/constants';
 import type { UploadResponse, IngestionStatus, AnalyticsData } from '@/types';
 
+/** `reset`: the backend rejected the answer streamed so far and is regenerating it. */
+export type StreamEvent =
+  | { type: 'token'; text: string }
+  | { type: 'reset'; status?: string };
+
 export async function* streamChat(
   query: string,
   chatHistory: { role: string; content: string }[]
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<StreamEvent, void, unknown> {
   const response = await fetch(ENDPOINTS.CHAT_STREAM, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -38,8 +43,12 @@ export async function* streamChat(
 
       try {
         const data = JSON.parse(dataStr);
+        if (data.reset) {
+          yield { type: 'reset', status: data.status };
+          continue;
+        }
         if (data.token === '[stream completed]') return;
-        if (data.token) yield data.token;
+        if (data.token) yield { type: 'token', text: data.token };
       } catch {
         // skip malformed JSON
       }

@@ -1,17 +1,20 @@
 from langgraph.graph import StateGraph, START, END
 from ai.state import AgentState
-from ai.nodes import retrieve, generate, websearch, router, out_of_scope_node, grade_answer, check_if_more_info_needed
+from ai.nodes import contextualize, retrieve, generate, websearch, router, out_of_scope_node, grade_answer, check_if_more_info_needed
 
 def load_agent():
     workflow = StateGraph(AgentState)
 
+    workflow.add_node("contextualize", contextualize)
     workflow.add_node("retrieve", retrieve)
     workflow.add_node("generate", generate)
     workflow.add_node("block", out_of_scope_node)
     workflow.add_node("websearch", websearch)
     
+    workflow.add_edge(START, "contextualize")
+
     workflow.add_conditional_edges(
-        START,
+        "contextualize",
         router,
         {
             "vector_store": "retrieve",

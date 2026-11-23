@@ -9,7 +9,7 @@ is classified as non-technical.
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from ai.state import AgentState
+from ai.state import AgentState, get_search_query
 from ai.llm import get_llm
 from core.logger import get_logger
 
@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 def router(state: AgentState):
     """Node to route the question to either the vector store or block generation if it's out of scope"""
-    question = state["query"]
+    question = get_search_query(state)
 
     import textwrap
     system_prompt = textwrap.dedent("""\
@@ -48,18 +48,15 @@ def router(state: AgentState):
 
     try:
         raw_response = base_chain.invoke({"query": question})
-        print(f"RAW_RESPONSE: {repr(raw_response)}")
         route = raw_response.strip().lower()
         if "vector_store" in route:
             route = "vector_store"
         elif "out_of_scope" in route:
             route = "out_of_scope"
         else:
-            print(f"WARNING UNRECOGNIZED: {raw_response}")
             logger.warning("Unrecognized routing output: %s", raw_response)
             route = "out_of_scope"
     except Exception as e:
-        print(f"EXCEPTION: {repr(e)}")
         logger.warning("Initial parse failed. Error: %s", e)
         route = "out_of_scope"
 

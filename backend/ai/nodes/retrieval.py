@@ -10,7 +10,7 @@ or if the agent should fall back to a web search.
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from ai.state import AgentState
+from ai.state import AgentState, get_search_query
 from core.config import settings
 from ai.llm import get_llm, get_embeddings
 from core.logger import get_logger
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 def retrieve(state: AgentState):
     """Node to retrieve relevant documents from the vector database based on the agent's query"""
-    question = state["query"]
+    question = get_search_query(state)
     vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=get_embeddings())
     docs = vector_db.similarity_search(question, k=settings.retrieval_k)
     return {"documents": docs}
@@ -28,7 +28,7 @@ def retrieve(state: AgentState):
 
 def check_if_more_info_needed(state: AgentState):
     """Node to check if the retrieved documents are sufficient, or if we need a web search for more info"""
-    question = state["query"]
+    question = get_search_query(state)
     docs = state.get("documents", [])
     
     if not docs:

@@ -67,7 +67,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {isUser ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : isEmpty ? (
-            <TypingIndicator />
+            <TypingIndicator label={message.status} />
           ) : (
             <MarkdownRenderer content={message.content} />
           )}
