@@ -39,7 +39,7 @@ async def generate(state: AgentState, config: RunnableConfig):
     
     context = "\n\n".join(context_chunks)
     chat_history = state.get("chat_history", [])
-    memory_context = build_memory_context(chat_history)
+    memory_context = await build_memory_context(chat_history)
 
     system_base = (
         "You are a technical assistant. "

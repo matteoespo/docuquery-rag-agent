@@ -3,6 +3,8 @@ import type { ChatMessage } from '@/types';
 import { INITIAL_MESSAGE } from '@/constants';
 import { streamChat } from '@/services/api';
 
+const INITIAL_MESSAGE_ID = 'initial-message';
+
 interface ChatStore {
   messages: ChatMessage[];
   isStreaming: boolean;
@@ -21,7 +23,7 @@ const createMessage = (role: 'user' | 'assistant', content: string): ChatMessage
 
 export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [{
-    id: 'initial-message',
+    id: INITIAL_MESSAGE_ID,
     role: 'assistant',
     content: INITIAL_MESSAGE.content,
     timestamp: '',
@@ -33,15 +35,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const userMessage = createMessage('user', content);
     const assistantMessage = createMessage('assistant', '');
 
+    // Prior turns only: the current query is sent separately as `query`, and the
+    // UI greeting / failed replies are not part of the conversation.
+    const history = get().messages
+      .filter((m) => m.id !== INITIAL_MESSAGE_ID && !m.isError && m.content.trim())
+      .map((m) => ({ role: m.role, content: m.content }));
+
     set((state) => ({
       messages: [...state.messages, userMessage, assistantMessage],
       isStreaming: true,
       error: null,
     }));
-
-    const history = get().messages
-      .filter((m) => m.id !== assistantMessage.id)
-      .map((m) => ({ role: m.role, content: m.content }));
 
     try {
       for await (const token of streamChat(content, history)) {
@@ -56,10 +60,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Connection failed';
       set((state) => ({
+        // Flag the whole failed turn so neither message is sent as history.
         messages: state.messages.map((m) =>
           m.id === assistantMessage.id
-            ? { ...m, content: 'Sorry, there was an error connecting to the agent. Please check that the backend is running.' }
-            : m
+            ? { ...m, isError: true, content: 'Sorry, there was an error connecting to the agent. Please check that the backend is running.' }
+            : m.id === userMessage.id
+              ? { ...m, isError: true }
+              : m
         ),
         error: errorMsg,
       }));
@@ -71,7 +78,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   clearChat: () => {
     set({
       messages: [{
-        id: 'initial-message',
+        id: INITIAL_MESSAGE_ID,
         role: 'assistant',
         content: INITIAL_MESSAGE.content,
         timestamp: '',

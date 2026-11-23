@@ -3,6 +3,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  /** Set on both messages of a failed turn; excluded from history sent to the backend. */
+  isError?: boolean;
 }
 
 export interface UploadResponse {
