@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ChatMessage } from '@/types';
 import { INITIAL_MESSAGE } from '@/constants';
-import { streamChat } from '@/services/api';
+import { AgentError, streamChat } from '@/services/api';
 
 const INITIAL_MESSAGE_ID = 'initial-message';
 
@@ -60,11 +60,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Connection failed';
+      const shown = err instanceof AgentError
+        ? err.message
+        : 'Sorry, there was an error connecting to the agent. Please check that the backend is running.';
       set((state) => ({
         // Flag the whole failed turn so neither message is sent as history.
         messages: state.messages.map((m) =>
           m.id === assistantMessage.id
-            ? { ...m, isError: true, content: 'Sorry, there was an error connecting to the agent. Please check that the backend is running.' }
+            ? { ...m, isError: true, status: undefined, content: shown }
             : m.id === userMessage.id
               ? { ...m, isError: true }
               : m

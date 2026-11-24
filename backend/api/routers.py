@@ -122,10 +122,12 @@ def delete_document(filename: str) -> dict:
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail=f"Document '{filename}' not found.")
 
+    # Vectors first: if this fails the file stays and the delete can be retried.
+    # (Deleting the file first left orphaned vectors nothing would clean up.)
+    vectors_deleted = delete_document_vectors(str(file_path))
+
     file_path.unlink()
     logger.info("Deleted file: %s", file_path)
-
-    vectors_deleted = delete_document_vectors(str(file_path))
 
     return {
         "message": f"Document '{filename}' deleted successfully.",
@@ -207,7 +209,19 @@ async def generate_tokens(agent, initial_state: AgentState) -> AsyncGenerator[st
     """Stream tokens from LangGraph agent using astream_events (v2).
 
     Filters for 'on_chat_model_stream' events to extract raw text tokens.
+    If the agent fails, an ``error`` event is sent instead of the completion marker.
     """
+    try:
+        async for event in _answer_events(agent, initial_state):
+            yield event
+    except Exception:
+        logger.exception("Agent failed while answering")
+        message = "Something went wrong while generating the answer. Check that Ollama is running and try again."
+        yield f"data: {json.dumps({'error': message})}\n\n"
+
+
+async def _answer_events(agent, initial_state: AgentState) -> AsyncGenerator[str, None]:
+    """SSE lines for one agent run (tokens, resets, final answer, completion marker)."""
     has_yielded = False
     final_answer = None
     generation_count = 0
