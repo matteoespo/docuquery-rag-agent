@@ -26,6 +26,8 @@ def test_refusal_detection():
     assert is_refusal("The provided documents do not mention a warranty period.")
     assert is_refusal("I don’t know based on the context.")
     assert is_refusal("I don't have information on the pricing of the KX-200.")
+    assert is_refusal("The retrieved context does not provide specific information about it.")
+    assert is_refusal("The context provided does not specify the number of layers.")
     assert not is_refusal("The warranty period is 2 years.")
 
 

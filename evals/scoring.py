@@ -14,7 +14,7 @@ REFUSAL_MARKERS = [
     "don't know", "do not know", "don't have information", "do not have information",
     "n't have any information", "have no information", "not mention", "n't mention", "no mention",
     "not mentioned", "n't mentioned", "no information", "not contain", "n't contain",
-    "not provided", "n't provide", "not available", "not specified", "n't specify",
+    "not provide", "n't provide", "not available", "not specif", "n't specif",
     "not stated", "n't say", "not include", "n't include", "unable to find",
     "could not find", "couldn't find", "not found", "no details",
     "no specific information", "cannot find", "can't find",
