@@ -43,3 +43,7 @@ debug
 
 # deprecated
 old_frontend/
+# Eval run outputs (baselines live in evals/baselines/)
+evals/results/
+# Depends on your data/pdfs and quotes your documents: kept local
+evals/baselines/local.json

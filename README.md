@@ -77,6 +77,14 @@ The project has recently evolved from a linear pipeline into an Agentic applicat
 * **Token Streaming:** Token-by-token generation in the FastAPI backend and Next.js UI for a faster user experience.
 * **Source Citations:** The agent's output is enhanced to explicitly cite the source document name, web link, or page number it used to generate the answer.
 
+## Evaluation
+
+`evals/` measures answer accuracy, retrieval, citations, web-search use, LLM calls and latency against a local Ollama, on a synthetic corpus and optionally on your own PDFs. See [evals/README.md](evals/README.md).
+
+```bash
+uv run python -m evals.run --compare evals/baselines/synthetic.json
+```
+
 ## Quick Start
 
 ### Prerequisites
