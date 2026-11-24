@@ -117,4 +117,9 @@ def score_case(case: dict, result: dict) -> dict:
         # (citation_ok still requires the page).
         "hallucinated_citation": any(_invented(c, retrieved, retrieved_files, result) for c in citations),
         "web_search": "websearch" in result["nodes"],
+        # Retrieval vs generation: do the retrieved chunks contain the required facts?
+        "context_has_answer": (
+            answer_contains(" ".join(result.get("retrieved_text", [])), case["must_contain"], [])
+            if case.get("must_contain") else None
+        ),
     }
