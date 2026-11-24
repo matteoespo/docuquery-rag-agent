@@ -1,17 +1,17 @@
-"""Retrieval nodes — vector store search and document sufficiency grading.
+"""Retrieval nodes — vector store search and a relevance gate.
 
-``retrieve`` performs a similarity search against ChromaDB.
+``retrieve`` runs a similarity search and records each chunk's relevance
+score (0..1, higher is closer) in its metadata.
 
-``check_if_more_info_needed`` is a conditional edge that evaluates whether
-the retrieved documents contain enough information to answer the query,
-or if the agent should fall back to a web search.
+``check_if_more_info_needed`` is a conditional edge: if nothing was retrieved
+or even the best chunk scores below ``settings.min_relevance``, the agent falls
+back to web search. This replaced an LLM "are these documents enough?" call,
+which sent most document-answerable questions to the web anyway.
 """
 
 from langchain_chroma import Chroma
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 
-from ai.llm import get_embeddings, get_llm
+from ai.llm import get_embeddings
 from ai.state import AgentState, get_search_query
 from core.config import settings
 from core.logger import get_logger
@@ -20,53 +20,23 @@ logger = get_logger(__name__)
 
 
 def retrieve(state: AgentState):
-    """Node to retrieve relevant documents from the vector database based on the agent's query"""
+    """Node: the top ``retrieval_k`` chunks for the (standalone) question."""
     question = get_search_query(state)
     vector_db = Chroma(persist_directory=settings.db_dir, embedding_function=get_embeddings())
-    docs = vector_db.similarity_search(question, k=settings.retrieval_k)
+    docs = []
+    for doc, score in vector_db.similarity_search_with_relevance_scores(question, k=settings.retrieval_k):
+        doc.metadata["relevance"] = round(float(score), 3)
+        docs.append(doc)
     return {"documents": docs}
 
 
 def check_if_more_info_needed(state: AgentState):
-    """Node to check if the retrieved documents are sufficient, or if we need a web search for more info"""
-    question = get_search_query(state)
+    """Conditional edge: "vector_store" if the best chunk is relevant enough, else "more_info_needed"."""
     docs = state.get("documents", [])
-    
     if not docs:
         return "more_info_needed"
-        
-    context = "\n\n".join([doc.page_content for doc in docs])
-
-    import textwrap
-    system_prompt = textwrap.dedent("""\
-    You are a grader assessing relevance of retrieved documents to a user question.
-
-    Analyze the documents and route accordingly:
-    - Use 'vector_store' if the documents contain sufficient information to answer the question.
-    - Use 'more_info_needed' if the documents lack relevant information or detail to answer the question.
-
-    CRITICAL RULE: You must output ONLY a single word: either "vector_store" or "more_info_needed". DO NOT output any other text or explanation.
-    """)
-    
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "Question: {query}\n\nRetrieved Documents: {context}")
-    ])
-
-    base_chain = prompt | get_llm() | StrOutputParser()
-
-    try:
-        raw_response = base_chain.invoke({"query": question, "context": context})
-        route = raw_response.strip().lower()
-        if "vector_store" in route:
-            route = "vector_store"
-        elif "more_info_needed" in route:
-            route = "more_info_needed"
-        else:
-            logger.warning("Unrecognized routing output: %s", raw_response)
-            route = "vector_store"
-    except Exception as e:
-        logger.warning("Initial parse failed. Error: %s", e)
-        route = "vector_store"
-
-    return route
+    best = max(doc.metadata.get("relevance", 0.0) for doc in docs)
+    if best < settings.min_relevance:
+        logger.info("Best chunk relevance %.3f < %.3f: falling back to web search", best, settings.min_relevance)
+        return "more_info_needed"
+    return "vector_store"

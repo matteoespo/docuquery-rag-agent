@@ -1,67 +1,83 @@
-"""Routing nodes — semantic query classification and out-of-scope blocking.
+"""Routing nodes — query classification and out-of-scope blocking.
 
-``router`` is used as a conditional edge from START to decide whether a
-query should be sent to the vector store or blocked as out-of-scope.
+``router`` is a conditional edge after ``contextualize``: it decides whether
+the question goes to retrieval or gets the out-of-scope reply. It uses
+structured output (Ollama constrains the reply to the JSON schema) and is
+told to prefer answering: wrongly blocking a real question is worse than
+retrieving for a greeting.
 
-``out_of_scope_node`` returns a friendly default message when the query
-is classified as non-technical.
+``out_of_scope_node`` returns the friendly default message.
 """
 
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from pathlib import Path
+from typing import Literal
+
+from langchain_core.exceptions import OutputParserException
+from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel, Field, ValidationError
 
 from ai.llm import get_llm
 from ai.state import AgentState, get_search_query
+from core.config import settings
 from core.logger import get_logger
 
 logger = get_logger(__name__)
 
+MAX_LISTED_DOCUMENTS = 20
+
+
+class RouteDecision(BaseModel):
+    """Whether the question should be answered from the documents."""
+    datasource: Literal["vector_store", "out_of_scope"] = Field(
+        description="vector_store for anything that could be answered from the documents; "
+                    "out_of_scope only for greetings, small talk or clearly unrelated requests.",
+    )
+
+
+ROUTER_PROMPT = """You decide whether a user message should be answered from the user's documents.
+
+Documents available:
+{documents}
+
+Choose "vector_store" for any question that could be answered from documents like these: \
+facts, specifications, procedures, error codes, comparisons, people, authors, tables, \
+methods, definitions or anything about the topics, products or papers above.
+Choose "out_of_scope" ONLY for greetings and small talk, or requests clearly unrelated to \
+any document (jokes, poems, weather, general trivia).
+When in doubt, choose "vector_store"."""
+
+
+def _document_names() -> str:
+    pdfs = sorted(p.stem for p in Path(settings.manual_path).glob("**/*.pdf"))
+    if not pdfs:
+        return "(none uploaded yet)"
+    listed = "\n".join(f"- {name}" for name in pdfs[:MAX_LISTED_DOCUMENTS])
+    more = len(pdfs) - MAX_LISTED_DOCUMENTS
+    return listed + (f"\n- ... and {more} more" if more > 0 else "")
+
 
 def router(state: AgentState):
-    """Node to route the question to either the vector store or block generation if it's out of scope"""
-    question = get_search_query(state)
-
-    import textwrap
-    system_prompt = textwrap.dedent("""\
-    You are a strict routing system. Your ONLY job is to classify the user's input.
-
-    The vectorstore contains technical manuals, documentation, research papers, and product specifications.
-
-    Route to 'vector_store' if the question is:
-    - Asking for technical information, product details, conceptual explanations, or comparisons.
-    - Explicitly asking to use the "context" or referring to an "uploaded document/paper".
-    - Related to ANY technical, theoretical, or engineering concepts that might be found in a paper or manual.
-    - Asking about features, specifications, or how to operate a system.
-
-    Route to 'out_of_scope' ONLY if the question is:
-    - General chat, simple greetings ("hi", "hello"), or completely unrelated topics (weather, cooking, pop culture, etc).
-    - Obviously malicious or completely non-technical.
-
-    CRITICAL RULE: You must output ONLY a single word: either "vector_store" or "out_of_scope". DO NOT output any other text or explanation.
-    """)
-    
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{query}")
-    ])
-
-    base_chain = prompt | get_llm() | StrOutputParser()
-
+    """Conditional edge: "vector_store" or "out_of_scope"."""
+    messages = [
+        SystemMessage(ROUTER_PROMPT.format(documents=_document_names())),
+        HumanMessage(get_search_query(state)),
+    ]
+    structured = get_llm().with_structured_output(RouteDecision, method="json_schema")
     # LLM errors (e.g. Ollama unreachable) propagate: answering "I'm a technical
     # assistant..." would hide the outage. The chat stream reports them as errors.
-    raw_response = base_chain.invoke({"query": question})
-    route = raw_response.strip().lower()
-    if "out_of_scope" in route and "vector_store" not in route:
-        return "out_of_scope"
-    if "vector_store" not in route:
-        # Unparseable output: wrongly blocking a real question is worse than
-        # trying to answer it; the relevance check and "I don't know" still apply.
-        logger.warning("Unrecognized routing output, defaulting to vector_store: %s", raw_response)
-    return "vector_store"
+    try:
+        decision = structured.invoke(messages)
+    except (OutputParserException, ValidationError) as e:
+        logger.warning("Unparseable routing output, defaulting to vector_store: %s", e)
+        return "vector_store"
+    if decision is None:
+        logger.warning("Empty routing output, defaulting to vector_store")
+        return "vector_store"
+    return decision.datasource
 
 
 def out_of_scope_node(state: AgentState):
     """Node to handle out-of-scope questions by returning a default response indicating the assistant's limitations."""
     response = "I'm a technical assistant specialized in documentation and manuals. I can answer questions based on the uploaded documents. Please ask me something related to your technical documentation!"
-    
+
     return {"answer": response}
