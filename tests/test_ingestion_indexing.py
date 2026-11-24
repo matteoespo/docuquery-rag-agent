@@ -1,6 +1,6 @@
 """Ingestion indexing: per-file stable chunk IDs, skip unchanged files, replace stale vectors."""
 
-import fitz
+import pymupdf
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -20,7 +20,7 @@ class CountingEmbeddings(DeterministicFakeEmbedding):
 
 
 def make_pdf(path, pages: list[str]) -> str:
-    doc = fitz.open()
+    doc = pymupdf.open()
     for text in pages:
         doc.new_page().insert_text((72, 72), text)
     doc.save(str(path))
