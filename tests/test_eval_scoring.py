@@ -60,6 +60,28 @@ def test_score_case_flags_citation_to_page_never_retrieved_and_web_search():
     assert score["web_search"] is True
 
 
+def test_file_cited_without_page_is_incomplete_not_invented():
+    case = {"kind": "lookup", "sources": [["q7.pdf", 2]], "must_contain": ["g3"]}
+    score = score_case(case, _result(answer="Terminal G3 [Source: q7.pdf]", retrieved=[("q7.pdf", 2)]))
+    assert score["hallucinated_citation"] is False
+    assert score["citation_ok"] is False  # still needs the page
+
+
+def test_file_names_compare_loosely_and_page_ranges_match():
+    case = {"kind": "lookup", "sources": [["A Review for  Testing.pdf", 2]], "must_contain": ["five"]}
+    result = _result(answer="five layers [Source: A Review for Testing.pdf, Page: 2-3]",
+                     retrieved=[("A Review for  Testing.pdf", 2)])
+    score = score_case(case, result)
+    assert score["citation_ok"] is True
+    assert score["hallucinated_citation"] is False
+
+
+def test_made_up_url_is_invented():
+    case = {"kind": "lookup", "sources": [["q9.pdf", 3]], "must_contain": ["zf-310"]}
+    score = score_case(case, _result(answer="ZF-310 [Source: https://example.com]", retrieved=[("q9.pdf", 3)]))
+    assert score["hallucinated_citation"] is True
+
+
 def test_score_case_out_of_scope_and_refusal():
     assert score_case({"kind": "oos", "expect_route": "out_of_scope"}, _result(route="out_of_scope"))["answer_ok"]
     assert not score_case({"kind": "oos", "expect_route": "out_of_scope"}, _result())["answer_ok"]

@@ -54,8 +54,38 @@ def parse_citations(answer: str) -> list[tuple[str, str | None]]:
     return out
 
 
+def _file_key(name: str) -> str:
+    """Models often rewrite file names (e.g. collapse a double space): compare loosely."""
+    return normalize(name)
+
+
+def _pages(page: str | None) -> set[str]:
+    """ "3" -> {"3"}; "2-3" -> {"2", "3"}; "2, 5" -> {"2", "5"}; None -> set()."""
+    if not page:
+        return set()
+    out = set()
+    for part in re.split(r"[,;&]|\band\b", page):
+        bounds = [b for b in re.findall(r"\d+", part)]
+        if len(bounds) == 2 and "-" in part:
+            out.update(str(n) for n in range(int(bounds[0]), int(bounds[1]) + 1))
+        else:
+            out.update(bounds)
+    return out
+
+
 def _same_source(cited: tuple[str, str | None], file: str, page) -> bool:
-    return cited[0] == file and cited[1] == str(page)
+    return _file_key(cited[0]) == _file_key(file) and str(page) in _pages(cited[1])
+
+
+def _invented(citation, retrieved: set, retrieved_files: set, result: dict) -> bool:
+    source, page = citation
+    if source.startswith(("http://", "https://")):
+        return source not in result.get("web_sources", [])
+    if _file_key(source) not in {_file_key(f) for f in retrieved_files}:
+        return True
+    pages = _pages(page)
+    retrieved_pages = {p for f, p in retrieved if _file_key(f) == _file_key(source)}
+    return bool(pages) and not (pages & retrieved_pages)
 
 
 def score_case(case: dict, result: dict) -> dict:
@@ -75,13 +105,16 @@ def score_case(case: dict, result: dict) -> dict:
             result["answer"], case.get("must_contain", []), case.get("must_not_contain", [])
         )
 
-    file_citations = [c for c in citations if not c[0].startswith(("http://", "https://"))]
+    retrieved_files = {f for f, _ in retrieved}
     return {
         "route_ok": route_ok,
         "answer_ok": answer_ok,
         # None = not applicable to this case
         "retrieval_hit": any((f, str(p)) in retrieved for f, p in sources) if sources else None,
         "citation_ok": any(_same_source(c, f, p) for c in citations for f, p in sources) if sources else None,
-        "hallucinated_citation": any((c[0], c[1]) not in retrieved for c in file_citations),
+        # Invented: a file never retrieved, a page never retrieved, or a URL that no web
+        # result supplied. A file cited without a page is incomplete, not invented
+        # (citation_ok still requires the page).
+        "hallucinated_citation": any(_invented(c, retrieved, retrieved_files, result) for c in citations),
         "web_search": "websearch" in result["nodes"],
     }

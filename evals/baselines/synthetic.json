@@ -10,7 +10,7 @@
     "route_accuracy": 0.958,
     "retrieval_hit_rate": 0.9,
     "citation_accuracy": 0.8,
-    "hallucinated_citation_rate": 0.042,
+    "hallucinated_citation_rate": 0.0,
     "web_search_rate_answerable": 0.6,
     "avg_llm_calls": 4.08,
     "median_latency_s": 13.98,
@@ -1140,7 +1140,7 @@
         "answer_ok": true,
         "retrieval_hit": null,
         "citation_ok": null,
-        "hallucinated_citation": true,
+        "hallucinated_citation": false,
         "web_search": true
       }
     },
