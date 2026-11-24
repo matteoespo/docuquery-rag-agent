@@ -15,7 +15,8 @@ class Settings(BaseSettings):
 
     # ── Ollama ──
     ollama_base_url: str = "http://ollama:11434"
-    llm_model: str = "llama3.2:3b"
+    # Chosen with evals/ (see evals/README.md): best accuracy that fits a 4 GB GPU.
+    llm_model: str = "phi4-mini"
     vision_model: str = "moondream"
     embedding_model: str = "nomic-embed-text"
 
