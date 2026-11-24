@@ -140,3 +140,26 @@ def test_upload_ingests_only_uploaded_files(upload_client):
     ])
     assert resp.status_code == 200
     assert calls == [[str(upload_dir / "new.pdf")]]
+
+
+@pytest.mark.parametrize("raw, clean", [
+    ("Kl¨uck et al.", "Klück et al."),        # PyMuPDF: diaeresis before the vowel
+    ("Hu¨lsen", "Hülsen"),                    # pdfplumber: diaeresis after the vowel
+    ("the ﬁve layers of trafﬁc", "the five layers of traffic"),  # ligatures
+    ("ap-\nproachesTo", "approachesTo"),           # hyphenated across a line break
+    ("Time-to-Collision", "Time-to-Collision"),    # real hyphens stay
+])
+def test_normalize_text(raw, clean):
+    assert ingestion.normalize_text(raw) == clean
+
+
+def test_chunks_from_an_older_ingestion_version_are_reindexed(env):
+    pdf_dir, _ = env
+    a = make_pdf(pdf_dir / "a.pdf", ["alpha"])
+    ingestion.ingest_manual([a])
+    collection = ingestion._get_vector_db()._collection
+    indexed = collection.get(include=["metadatas"])
+    collection.update(ids=indexed["ids"], metadatas=[m | {"ingestion_version": 1} for m in indexed["metadatas"]])
+
+    assert ingestion.ingest_manual([a]) == [a]  # same content, older version -> re-indexed
+    assert all(m["ingestion_version"] == ingestion.INGESTION_VERSION for m in all_vectors().values())

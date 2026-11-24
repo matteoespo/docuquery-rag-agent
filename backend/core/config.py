@@ -65,10 +65,10 @@ class Settings(BaseSettings):
     retrieval_k: int = 3
     max_retries: int = 2
     # Below this best-chunk relevance (0..1) the agent falls back to web search.
-    # Calibrated with nomic-embed-text on the eval sets: answerable questions
-    # scored 0.38-0.73, unrelated ones ~0.28. Recalibrate if the embedding
-    # model or its prefixes change.
-    min_relevance: float = 0.33
+    # Calibrated with nomic-embed-text (with search_query/search_document
+    # prefixes) on the eval sets: answerable questions scored 0.46-0.76,
+    # unrelated ones 0.34-0.40. Recalibrate if the embedding setup changes.
+    min_relevance: float = 0.43
     # Extra LLM call per answer that can reject it and trigger web search.
     enable_answer_grader: bool = True
 
