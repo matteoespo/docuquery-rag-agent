@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write  # to start CI on main after merging
 
 jobs:
   bulk-merge:
@@ -20,10 +21,15 @@ jobs:
         run: |
           prs=$(gh pr list --author "app/dependabot" --state open --json number -q '.[].number')
           [ -z "$prs" ] && { echo "No open Dependabot PRs."; exit 0; }
+          merged=0
           for pr in $prs; do
-            .github/scripts/dependabot-merge.sh "$pr" || echo "::warning::Failed to merge #$pr"
+            out=$(.github/scripts/dependabot-merge.sh "$pr") || out="::warning::Failed to merge #$pr"
+            echo "$out"
+            grep -q ": merged$" <<<"$out" && merged=1
             sleep 2
           done
+          # GITHUB_TOKEN merges don't trigger CI on main: run it on the merged result.
+          if [ "$merged" = 1 ]; then gh workflow run ci.yml --ref main; fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

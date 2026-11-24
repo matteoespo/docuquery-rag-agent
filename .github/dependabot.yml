@@ -5,7 +5,7 @@ updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 10
     groups:
       python-minor-patch:
@@ -14,7 +14,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 10
     groups:
       npm-minor-patch:
@@ -31,14 +31,20 @@ updates:
     directories:
       - "/backend"
       - "/frontend"
+    ignore:
+      # Stay on Python 3.12 until the locked deps (chromadb, pymupdf, LangChain)
+      # are upgraded and verified on a newer interpreter. Docker tags count
+      # 3.12 -> 3.15 as a "minor" update, hence both types.
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 5
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     open-pull-requests-limit: 5
     groups:
       actions:
