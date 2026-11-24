@@ -1,7 +1,8 @@
 """Pydantic schemas for API request/response models and LLM structured output."""
 
-from pydantic import BaseModel, Field
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class ChatMessage(BaseModel):
@@ -22,12 +23,6 @@ class QueryRequest(BaseModel):
         max_length=50,
         description="Previous conversation messages (max 50).",
     )
-
-
-class ChatResponse(BaseModel):
-    """Chat endpoint response."""
-    question: str
-    answer: str
 
 
 # LLM structured output schemas

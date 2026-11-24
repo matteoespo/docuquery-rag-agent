@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from langchain_core.documents import Document
 
-from backend.ai.nodes.retrieval import check_if_more_info_needed
 from backend.ai.nodes.generation import generate
+from backend.ai.nodes.retrieval import check_if_more_info_needed
 from backend.ai.nodes.routing import out_of_scope_node
 
 

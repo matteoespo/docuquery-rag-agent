@@ -1,6 +1,17 @@
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import END, START, StateGraph
+
+from ai.nodes import (
+    check_if_more_info_needed,
+    contextualize,
+    generate,
+    grade_answer,
+    out_of_scope_node,
+    retrieve,
+    router,
+    websearch,
+)
 from ai.state import AgentState
-from ai.nodes import contextualize, retrieve, generate, websearch, router, out_of_scope_node, grade_answer, check_if_more_info_needed
+
 
 def load_agent():
     workflow = StateGraph(AgentState)
@@ -43,12 +54,5 @@ def load_agent():
     workflow.add_edge("block", END)
     workflow.add_edge("websearch", "generate")
 
-    agent = workflow.compile()
-
-    """
-    png_data = agent.get_graph().draw_mermaid_png()
-    with open("../docs/agent_graph.png", "wb") as f:
-        f.write(png_data)
-    """
-
-    return agent
+    # Diagram for the README: load_agent().get_graph().draw_mermaid()
+    return workflow.compile()

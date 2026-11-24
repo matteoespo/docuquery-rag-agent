@@ -117,8 +117,8 @@ export function AnalyticsDashboard() {
           trend={<TrendingDown size={14} className="text-emerald-500" />}
         />
         <MetricCard 
-          title="Est. Savings" 
-          value={`$${data.est_savings.toFixed(4)}`} 
+          title="Tokens Processed" 
+          value={data.total_tokens.toLocaleString()} 
           icon={<FileText size={20} className="text-purple-500" />} 
         />
       </div>

@@ -38,7 +38,30 @@ The system is fully containerized and divided into three main microservices:
 
 ## Agent Workflow
 
-![Agent Architecture](docs/agent_graph.png)
+```mermaid
+graph TD;
+	__start__([start]):::first
+	contextualize(contextualize)
+	retrieve(retrieve)
+	generate(generate)
+	block(block)
+	websearch(websearch)
+	__end__([end]):::last
+	__start__ --> contextualize;
+	contextualize -. &nbsp;out_of_scope&nbsp; .-> block;
+	contextualize -. &nbsp;vector_store&nbsp; .-> retrieve;
+	generate -. &nbsp;useful&nbsp; .-> __end__;
+	generate -. &nbsp;not_useful&nbsp; .-> websearch;
+	retrieve -. &nbsp;vector_store&nbsp; .-> generate;
+	retrieve -. &nbsp;more_info_needed&nbsp; .-> websearch;
+	websearch --> generate;
+	block --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+```
+
+<sub>Generated from the compiled graph: `cd backend && python -c "from ai.agent import load_agent; print(load_agent().get_graph().draw_mermaid())"`</sub>
 
 ## Core Features (What's working right now)
 The project has recently evolved from a linear pipeline into an Agentic application. Current capabilities include:
@@ -67,7 +90,7 @@ The project has recently evolved from a linear pipeline into an Agentic applicat
     ```
 
 2. **Configure Environment Variables:**
-    Copy the example environment file and fill in your keys (especially your `LANGSMITH_API_KEY` for telemetry):
+    Copy the example environment file. LangSmith tracing is off by default; set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` only if you want traces and the Analytics page (this sends prompts and document chunks to LangSmith):
     ```bash
     cp .env.example .env
     ```

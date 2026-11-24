@@ -6,6 +6,9 @@ export type StreamEvent =
   | { type: 'token'; text: string }
   | { type: 'reset'; status?: string };
 
+/** The backend reached the agent but answering failed (e.g. Ollama is down). */
+export class AgentError extends Error {}
+
 export async function* streamChat(
   query: string,
   chatHistory: { role: string; content: string }[]
@@ -41,17 +44,20 @@ export async function* streamChat(
       const dataStr = line.slice(6).trim();
       if (!dataStr) continue;
 
+      let data;
       try {
-        const data = JSON.parse(dataStr);
-        if (data.reset) {
-          yield { type: 'reset', status: data.status };
-          continue;
-        }
-        if (data.token === '[stream completed]') return;
-        if (data.token) yield { type: 'token', text: data.token };
+        data = JSON.parse(dataStr);
       } catch {
-        // skip malformed JSON
+        continue; // skip malformed JSON
       }
+      // Thrown outside the JSON.parse try so it isn't swallowed as malformed input.
+      if (data.error) throw new AgentError(data.error);
+      if (data.reset) {
+        yield { type: 'reset', status: data.status };
+        continue;
+      }
+      if (data.token === '[stream completed]') return;
+      if (data.token) yield { type: 'token', text: data.token };
     }
   }
 }

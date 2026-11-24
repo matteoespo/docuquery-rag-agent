@@ -28,12 +28,14 @@ jobs:
       - name: Install Dependencies
         run: uv sync
 
+      - name: Lint (ruff)
+        run: uv run ruff check backend tests
+
       - name: Run pytest
         run: uv run pytest tests/
         env:
           LANGSMITH_API_KEY: dummy
           OLLAMA_HOST: http://localhost:11434
-          SECRET_KEY: dummy_secret_key_for_testing
 
   frontend-checks:
     name: Frontend Lint & Build

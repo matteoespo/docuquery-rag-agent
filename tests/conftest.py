@@ -2,7 +2,6 @@
 import os
 import sys
 
-
 _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _backend_root = os.path.join(_project_root, "backend")
 

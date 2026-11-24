@@ -1,0 +1,96 @@
+"""Failures surface as errors instead of being hidden: delete order, router, chat stream."""
+
+import asyncio
+import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from backend.ai.nodes.routing import router
+from backend.api.routers import generate_tokens
+
+# Delete endpoint
+
+@pytest.fixture
+def delete_client(tmp_path, monkeypatch):
+    import api.routers as routers
+
+    monkeypatch.setattr(routers.settings, "manual_path", str(tmp_path))
+    app = FastAPI()
+    app.include_router(routers.router)
+    pdf = tmp_path / "manual.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    return TestClient(app, raise_server_exceptions=False), routers, pdf
+
+
+def test_delete_keeps_file_when_vector_delete_fails(delete_client, monkeypatch):
+    client, routers, pdf = delete_client
+
+    def boom(_):
+        raise RuntimeError("chroma unavailable")
+
+    monkeypatch.setattr(routers, "delete_document_vectors", boom)
+    assert client.delete("/api/documents/manual.pdf").status_code == 500
+    assert pdf.exists(), "file must stay so the delete can be retried"
+
+
+def test_delete_removes_vectors_then_file(delete_client, monkeypatch):
+    client, routers, pdf = delete_client
+    calls = []
+    monkeypatch.setattr(routers, "delete_document_vectors", lambda path: calls.append((path, pdf.exists())) or 7)
+
+    resp = client.delete("/api/documents/manual.pdf")
+
+    assert resp.status_code == 200
+    assert resp.json()["vectors_deleted"] == 7
+    assert calls == [(str(pdf), True)]  # vectors deleted while the file still existed
+    assert not pdf.exists()
+
+
+# Router
+
+def _router_with_llm_reply(reply=None, error=None):
+    chain = MagicMock()
+    if error:
+        chain.invoke.side_effect = error
+    else:
+        chain.invoke.return_value = reply
+    prompt = MagicMock()
+    prompt.__or__.return_value.__or__.return_value = chain
+    with patch("backend.ai.nodes.routing.ChatPromptTemplate.from_messages", return_value=prompt), \
+         patch("backend.ai.nodes.routing.get_llm"):
+        return router({"query": "How do I calibrate the sensor?"})
+
+
+def test_router_unrecognized_output_tries_to_answer():
+    assert _router_with_llm_reply("I think this is about sensors.") == "vector_store"
+
+
+def test_router_still_blocks_out_of_scope():
+    assert _router_with_llm_reply("out_of_scope") == "out_of_scope"
+
+
+def test_router_llm_failure_is_not_disguised_as_out_of_scope():
+    with pytest.raises(ConnectionError):
+        _router_with_llm_reply(error=ConnectionError("ollama unreachable"))
+
+
+# Chat stream
+
+class FailingAgent:
+    async def astream_events(self, *args, **kwargs):
+        yield {"event": "on_chain_start", "tags": []}
+        raise ConnectionError("ollama unreachable")
+
+
+def test_stream_reports_agent_failure_as_error_event():
+    async def collect():
+        return [json.loads(line[len("data: "):]) async for line in generate_tokens(FailingAgent(), {})]
+
+    events = asyncio.run(collect())
+
+    assert len(events) == 1
+    assert "Ollama" in events[0]["error"]
+    assert {"token": "[stream completed]"} not in events

@@ -30,4 +30,6 @@ def test_analytics_uses_a_supported_list_runs_signature():
     assert data["total_requests"] == 2
     assert data["success_rate"] == 50.0
     assert data["avg_latency"] == 3.0
+    assert data["total_tokens"] == 400
+    assert "est_savings" not in data
     assert client.list_runs.call_args.kwargs["is_root"] is True

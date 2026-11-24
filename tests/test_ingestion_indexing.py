@@ -4,7 +4,6 @@ import pymupdf
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import DeterministicFakeEmbedding
 

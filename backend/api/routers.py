@@ -2,20 +2,25 @@
 
 import asyncio
 import json
+import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
-import os
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
+from langsmith import Client
 from starlette.background import BackgroundTasks
 
-from ai.ingestion import delete_document_vectors, enrich_with_images, get_ingestion_status, ingest_manual
+from ai.ingestion import (
+    delete_document_vectors,
+    enrich_with_images,
+    get_ingestion_status,
+    ingest_manual,
+)
 from ai.state import AgentState
 from api.models import QueryRequest
 from core.config import settings
 from core.logger import get_logger
-from langsmith import Client
 
 logger = get_logger(__name__)
 
@@ -122,10 +127,12 @@ def delete_document(filename: str) -> dict:
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail=f"Document '{filename}' not found.")
 
+    # Vectors first: if this fails the file stays and the delete can be retried.
+    # (Deleting the file first left orphaned vectors nothing would clean up.)
+    vectors_deleted = delete_document_vectors(str(file_path))
+
     file_path.unlink()
     logger.info("Deleted file: %s", file_path)
-
-    vectors_deleted = delete_document_vectors(str(file_path))
 
     return {
         "message": f"Document '{filename}' deleted successfully.",
@@ -162,7 +169,6 @@ def get_analytics() -> dict:
             
         success_rate = (successes / total_requests * 100) if total_requests > 0 else 0
         avg_latency = (sum(latencies) / len(latencies)) if latencies else 0
-        cost_saved = (total_tokens / 1_000_000) * 5.00
         
         # Prepare chart data (chronological order)
         latencies.reverse()
@@ -171,7 +177,7 @@ def get_analytics() -> dict:
             "total_requests": total_requests,
             "success_rate": round(success_rate, 1),
             "avg_latency": round(avg_latency, 2),
-            "est_savings": round(cost_saved, 4),
+            "total_tokens": total_tokens,
             "latencies": latencies,
         }
     except Exception as e:
@@ -180,7 +186,7 @@ def get_analytics() -> dict:
             "total_requests": 0,
             "success_rate": 0,
             "avg_latency": 0,
-            "est_savings": 0,
+            "total_tokens": 0,
             "latencies": []
         }
 
@@ -207,7 +213,19 @@ async def generate_tokens(agent, initial_state: AgentState) -> AsyncGenerator[st
     """Stream tokens from LangGraph agent using astream_events (v2).
 
     Filters for 'on_chat_model_stream' events to extract raw text tokens.
+    If the agent fails, an ``error`` event is sent instead of the completion marker.
     """
+    try:
+        async for event in _answer_events(agent, initial_state):
+            yield event
+    except Exception:
+        logger.exception("Agent failed while answering")
+        message = "Something went wrong while generating the answer. Check that Ollama is running and try again."
+        yield f"data: {json.dumps({'error': message})}\n\n"
+
+
+async def _answer_events(agent, initial_state: AgentState) -> AsyncGenerator[str, None]:
+    """SSE lines for one agent run (tokens, resets, final answer, completion marker)."""
     has_yielded = False
     final_answer = None
     generation_count = 0

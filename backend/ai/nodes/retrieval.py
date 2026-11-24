@@ -8,11 +8,12 @@ or if the agent should fall back to a web search.
 """
 
 from langchain_chroma import Chroma
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+
+from ai.llm import get_embeddings, get_llm
 from ai.state import AgentState, get_search_query
 from core.config import settings
-from ai.llm import get_llm, get_embeddings
 from core.logger import get_logger
 
 logger = get_logger(__name__)

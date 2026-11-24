@@ -26,7 +26,19 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.0,<10.0.0",
+    "ruff>=0.17,<0.18",
 ]
 
 [tool.setuptools]
 packages = ["backend"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# Real errors (pyflakes, pycodestyle E4/E7/E9) + import sorting. Style-only
+# rule families are left out on purpose to avoid churn.
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ai", "api", "core", "backend"]

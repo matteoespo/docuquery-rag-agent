@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from backend.ai.nodes.generation import grade_answer
+
 
 def test_grade_answer_retries_limit():
     """Test that it returns 'useful' if retries is >= 2 regardless of LLM output."""

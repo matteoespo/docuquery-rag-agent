@@ -4,8 +4,8 @@ Provides helpers to format and compress chat history into
 a context block that fits within the LLM's token budget.
 """
 
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 
 from ai.llm import get_llm
 from core.logger import get_logger

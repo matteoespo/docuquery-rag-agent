@@ -7,10 +7,11 @@ query should be sent to the vector store or blocked as out-of-scope.
 is classified as non-technical.
 """
 
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from ai.state import AgentState, get_search_query
+from langchain_core.prompts import ChatPromptTemplate
+
 from ai.llm import get_llm
+from ai.state import AgentState, get_search_query
 from core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -46,21 +47,17 @@ def router(state: AgentState):
 
     base_chain = prompt | get_llm() | StrOutputParser()
 
-    try:
-        raw_response = base_chain.invoke({"query": question})
-        route = raw_response.strip().lower()
-        if "vector_store" in route:
-            route = "vector_store"
-        elif "out_of_scope" in route:
-            route = "out_of_scope"
-        else:
-            logger.warning("Unrecognized routing output: %s", raw_response)
-            route = "out_of_scope"
-    except Exception as e:
-        logger.warning("Initial parse failed. Error: %s", e)
-        route = "out_of_scope"
-
-    return route
+    # LLM errors (e.g. Ollama unreachable) propagate: answering "I'm a technical
+    # assistant..." would hide the outage. The chat stream reports them as errors.
+    raw_response = base_chain.invoke({"query": question})
+    route = raw_response.strip().lower()
+    if "out_of_scope" in route and "vector_store" not in route:
+        return "out_of_scope"
+    if "vector_store" not in route:
+        # Unparseable output: wrongly blocking a real question is worse than
+        # trying to answer it; the relevance check and "I don't know" still apply.
+        logger.warning("Unrecognized routing output, defaulting to vector_store: %s", raw_response)
+    return "vector_store"
 
 
 def out_of_scope_node(state: AgentState):
