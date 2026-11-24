@@ -86,59 +86,68 @@ class TestStreamingPromptStructure:
         assert "Critical spec: 48V" in system_msg
         assert "CONVERSATION MEMORY:" in system_msg
 
-    def test_generate_kv_cache_prefix_reuse(self):
-        """Test that identical document sets produce identical static prefixes."""
+    @patch("backend.ai.nodes.generation.get_llm")
+    def test_generate_kv_cache_prefix_reuse(self, mock_get_llm):
+        """Same documents + different questions -> byte-identical system prompt."""
         from backend.ai.nodes.generation import generate
 
         docs = [
-            Document(page_content="Doc A content", metadata={"source": "manual1"}),
-            Document(page_content="Doc B content", metadata={"source": "manual2"}),
+            Document(page_content="Doc A content", metadata={"source": "manual1.pdf", "page": 1}),
+            Document(page_content="Doc B content", metadata={"source": "manual2.pdf", "page": 3}),
         ]
+        prompts = []
 
-        state1 = {
-            "query": "Query 1",
-            "documents": docs,
-            "chat_history": [],
-        }
-        state2 = {
-            "query": "Query 2",  # Different query
-            "documents": docs,  # Same docs
-            "chat_history": [],
-        }
+        def capture(messages):
+            prompts.append(messages)
+            chain = MagicMock()
+            chain.ainvoke = AsyncMock(return_value="answer")
+            prompt = MagicMock()
+            prompt.__or__.return_value.__or__.return_value = chain
+            return prompt
 
-        # Both states should build identical static prefixes
-        # This is implicit in the implementation: same docs → same context string
-        # In a real integration test, we'd verify KV cache hit at Ollama level
-        assert True  # Structure validated above
+        with patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages", side_effect=capture):
+            for query in ("Query 1", "A completely different question"):
+                asyncio.run(generate({"query": query, "documents": docs, "chat_history": []}, config=MagicMock()))
+
+        assert prompts[0][0][1] == prompts[1][0][1]
+        assert "Query 1" not in prompts[0][0][1]
+        assert prompts[0][1] == ("human", "{question}")
 
 
 class TestStreamingEndpoint:
-    """Test FastAPI `/chat/stream` endpoint and SSE generation."""
+    """Real HTTP request to /api/chat/stream with a fake agent."""
 
-    def test_generate_tokens_structure_verified(self):
-        """Verify generate_tokens processes events correctly (structure test)."""
-        # Integration tested manually via curl and Streamlit UI
-        # Unit testing async generators with mocks is complex
-        # Verify implementation in code review instead
-        from backend.api.routers import generate_tokens
-        import inspect
+    def test_chat_stream_endpoint(self):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from langchain_core.messages import AIMessageChunk
+        import api.routers as routers
 
-        source = inspect.getsource(generate_tokens)
-        assert "astream_events" in source
-        assert 'version="v2"' in source
-        assert "on_chat_model_stream" in source
-        assert "data: " in source
+        received = {}
 
-    def test_streaming_endpoint_has_sse_headers(self):
-        """Verify /chat/stream endpoint sets correct SSE headers."""
-        from backend.api.routers import chat_stream
-        import inspect
+        class FakeAgent:
+            async def astream_events(self, state, **kwargs):
+                received.update(state)
+                yield {"event": "on_chat_model_start", "tags": ["generate_node"]}
+                for text in ("36 V ", "DC"):
+                    yield {"event": "on_chat_model_stream", "tags": ["generate_node"],
+                           "data": {"chunk": AIMessageChunk(content=text)}}
 
-        source = inspect.getsource(chat_stream)
-        assert "StreamingResponse" in source
-        assert "text/event-stream" in source
-        assert "Cache-Control" in source
-        assert "Connection" in source
+        app = FastAPI()
+        app.include_router(routers.router)
+        app.state.agent = FakeAgent()
+        history = [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}]
+
+        resp = TestClient(app).post("/api/chat/stream", json={"query": "Input voltage?", "chat_history": history})
+
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith("text/event-stream")
+        assert resp.headers["cache-control"] == "no-cache"
+        events = [json.loads(line[len("data: "):]) for line in resp.text.splitlines() if line.startswith("data: ")]
+        assert events == [{"token": "36 V "}, {"token": "DC"}, {"token": "[stream completed]"}]
+        assert received["query"] == "Input voltage?"
+        assert received["chat_history"] == history
+        assert received["retries"] == 0
 
 
 class TestStreamingLLMConfig:
@@ -173,30 +182,3 @@ class TestStreamingLLMConfig:
 
             call_kwargs = mock_chat_ollama.call_args[1]
             assert call_kwargs.get("num_ctx") == 8192
-
-
-class TestStreamingIntegration:
-    """Integration tests for streaming workflow."""
-
-    def test_stream_endpoint_creates_initial_state(self):
-        """Verify /chat/stream creates correct AgentState."""
-        from backend.api.routers import chat_stream
-
-        mock_agent = AsyncMock()
-        mock_agent.astream_events = AsyncMock(return_value=iter([]))
-
-        mock_request = MagicMock()
-        mock_request.app.state.agent = mock_agent
-
-        # Structure verified in unit tests
-        assert True
-
-    def test_streaming_reduces_ttft_conceptually(self):
-        """Document TTFT reduction mechanism."""
-        # TTFT = Time To First Token
-        # Before: Wait for full response (500ms for 3B model on 4GB GPU)
-        # After: First token arrives ~100ms, subsequent tokens stream
-        #        KV cache hit on repeat queries → reuse frozen state
-        # Mechanism: Static prefix byte-matches → Ollama skips re-tokenization
-        assert True
-
