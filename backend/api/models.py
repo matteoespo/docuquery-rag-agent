@@ -24,12 +24,6 @@ class QueryRequest(BaseModel):
     )
 
 
-class ChatResponse(BaseModel):
-    """Chat endpoint response."""
-    question: str
-    answer: str
-
-
 # LLM structured output schemas
 
 class RouteDecision(BaseModel):

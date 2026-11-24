@@ -30,6 +30,6 @@ export interface AnalyticsData {
   total_requests: number;
   success_rate: number;
   avg_latency: number;
-  est_savings: number;
+  total_tokens: number;
   latencies: number[];
 }

@@ -164,7 +164,6 @@ def get_analytics() -> dict:
             
         success_rate = (successes / total_requests * 100) if total_requests > 0 else 0
         avg_latency = (sum(latencies) / len(latencies)) if latencies else 0
-        cost_saved = (total_tokens / 1_000_000) * 5.00
         
         # Prepare chart data (chronological order)
         latencies.reverse()
@@ -173,7 +172,7 @@ def get_analytics() -> dict:
             "total_requests": total_requests,
             "success_rate": round(success_rate, 1),
             "avg_latency": round(avg_latency, 2),
-            "est_savings": round(cost_saved, 4),
+            "total_tokens": total_tokens,
             "latencies": latencies,
         }
     except Exception as e:
@@ -182,7 +181,7 @@ def get_analytics() -> dict:
             "total_requests": 0,
             "success_rate": 0,
             "avg_latency": 0,
-            "est_savings": 0,
+            "total_tokens": 0,
             "latencies": []
         }
 

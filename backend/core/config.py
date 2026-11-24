@@ -13,9 +13,6 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application-wide configuration with validated defaults."""
 
-    # ── Security ──
-    secret_key: str
-
     # ── Ollama ──
     ollama_base_url: str = "http://ollama:11434"
     llm_model: str = "llama3.2:3b"
@@ -30,8 +27,6 @@ class Settings(BaseSettings):
     skip_image_captioning: bool = False
     min_image_bytes: int = 5000
     min_image_dimension: int = 100
-    max_vision_workers: int = 2
-    max_pdf_workers: int = 4
     chroma_batch_size: int = 100
 
     # ── Upload limits ──
@@ -39,7 +34,7 @@ class Settings(BaseSettings):
     max_upload_files: int = 10
 
     # ── CORS ──
-    cors_origins: str = "http://localhost:8501,http://web:8501,http://localhost:8000,http://localhost:3000"
+    cors_origins: str = "http://localhost:3000"
     _parsed_cors_origins: list[str] | None = None
 
     @field_validator("cors_origins")

@@ -43,12 +43,5 @@ def load_agent():
     workflow.add_edge("block", END)
     workflow.add_edge("websearch", "generate")
 
-    agent = workflow.compile()
-
-    """
-    png_data = agent.get_graph().draw_mermaid_png()
-    with open("../docs/agent_graph.png", "wb") as f:
-        f.write(png_data)
-    """
-
-    return agent
+    # Diagram for the README: load_agent().get_graph().draw_mermaid()
+    return workflow.compile()
