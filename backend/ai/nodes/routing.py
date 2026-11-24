@@ -7,10 +7,11 @@ query should be sent to the vector store or blocked as out-of-scope.
 is classified as non-technical.
 """
 
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from ai.state import AgentState, get_search_query
+from langchain_core.prompts import ChatPromptTemplate
+
 from ai.llm import get_llm
+from ai.state import AgentState, get_search_query
 from core.logger import get_logger
 
 logger = get_logger(__name__)

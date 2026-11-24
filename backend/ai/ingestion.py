@@ -1,19 +1,21 @@
-import os
-import glob
 import base64
+import glob
 import hashlib
-import time
+import os
 import threading
+import time
 from pathlib import Path
-from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+import pdfplumber
+import pymupdf
 from langchain_chroma import Chroma
+from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from ai.llm import get_embeddings, get_vision_llm
 from core.config import settings
 from core.logger import get_logger
-from ai.llm import get_embeddings, get_vision_llm
-import pymupdf
-import pdfplumber
 
 logger = get_logger(__name__)
 

@@ -5,9 +5,9 @@ graph definition in ``agent.py`` can use a single import line.
 """
 
 from ai.nodes.contextualize import contextualize
-from ai.nodes.routing import router, out_of_scope_node
-from ai.nodes.retrieval import retrieve, check_if_more_info_needed
 from ai.nodes.generation import generate, grade_answer
+from ai.nodes.retrieval import check_if_more_info_needed, retrieve
+from ai.nodes.routing import out_of_scope_node, router
 from ai.nodes.websearch import websearch
 
 __all__ = [

@@ -1,7 +1,8 @@
 """Pydantic schemas for API request/response models and LLM structured output."""
 
-from pydantic import BaseModel, Field
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class ChatMessage(BaseModel):

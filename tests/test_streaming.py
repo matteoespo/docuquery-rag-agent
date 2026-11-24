@@ -1,12 +1,9 @@
 """Tests for token streaming functionality via FastAPI SSE and LangGraph astream_events."""
-import json
-from unittest.mock import AsyncMock, MagicMock, patch, call
 import asyncio
-import pytest
-from langchain_core.documents import Document
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from backend.ai.state import AgentState
-from backend.api.routers import generate_tokens
+from langchain_core.documents import Document
 
 
 class TestStreamingPromptStructure:
@@ -15,7 +12,6 @@ class TestStreamingPromptStructure:
     @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
     @patch("backend.ai.nodes.generation.get_llm")
     def test_generate_static_prefix_first(self, mock_get_llm, mock_from_messages):
-        mock_llm = mock_get_llm.return_value
         """Verify static content (system + context) comes before dynamic query."""
         from backend.ai.nodes.generation import generate
 
@@ -55,7 +51,6 @@ class TestStreamingPromptStructure:
     def test_generate_static_prefix_contains_system_and_context(
         self, mock_get_llm, mock_from_messages
     ):
-        mock_llm = mock_get_llm.return_value
         """Verify static prefix contains system instructions + context + memory."""
         from backend.ai.nodes.generation import generate
 
@@ -121,6 +116,7 @@ class TestStreamingEndpoint:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
         from langchain_core.messages import AIMessageChunk
+
         import api.routers as routers
 
         received = {}

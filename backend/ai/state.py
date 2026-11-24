@@ -1,6 +1,8 @@
-from typing import TypedDict, List, Annotated, NotRequired
 import operator
+from typing import Annotated, List, NotRequired, TypedDict
+
 from langchain_core.documents import Document
+
 
 # here we use TypedDict instead of Pydantic because it's internal and we dont want validation overhead. We assume we always have the correct data structure :)
 class AgentState(TypedDict):

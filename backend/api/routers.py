@@ -2,20 +2,25 @@
 
 import asyncio
 import json
+import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
-import os
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
+from langsmith import Client
 from starlette.background import BackgroundTasks
 
-from ai.ingestion import delete_document_vectors, enrich_with_images, get_ingestion_status, ingest_manual
+from ai.ingestion import (
+    delete_document_vectors,
+    enrich_with_images,
+    get_ingestion_status,
+    ingest_manual,
+)
 from ai.state import AgentState
 from api.models import QueryRequest
 from core.config import settings
 from core.logger import get_logger
-from langsmith import Client
 
 logger = get_logger(__name__)
 
