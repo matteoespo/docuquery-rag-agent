@@ -2,6 +2,9 @@
 
 Centralises creation of Ollama-backed models. Uses ``lru_cache`` so that
 repeated calls across modules return the same client instance.
+
+Token streaming needs no flag: LangChain streams automatically when the
+caller listens for stream events (``astream_events`` in the chat endpoint).
 """
 
 from functools import lru_cache
@@ -18,7 +21,6 @@ def get_llm() -> ChatOllama:
         model=settings.llm_model,
         temperature=0,
         base_url=settings.ollama_base_url,
-        streaming=True,
         keep_alive=-1,
         num_ctx=8192,
     )
@@ -40,7 +42,6 @@ def get_vision_llm() -> ChatOllama:
         model=settings.vision_model,
         temperature=0,
         base_url=settings.ollama_base_url,
-        streaming=True,
         keep_alive=-1,
         num_ctx=8192,
     )

@@ -141,7 +141,7 @@ def get_analytics() -> dict:
         client = Client()
         runs = list(client.list_runs(
             project_name=project_name,
-            execution_order=1,
+            is_root=True,  # top-level graph runs (execution_order was removed in langsmith 0.9)
             limit=100
         ))
         

@@ -8,11 +8,17 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install uv
 
-COPY . .
+# Install exactly the versions in uv.lock (no dev deps). Dependencies are a
+# separate layer so code changes don't reinstall them.
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-RUN uv pip install --system .
+COPY backend ./backend
 
-ENV PYTHONPATH=/app/backend
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app/backend
+# Run from /app: settings paths (data/chroma_db, data/pdfs) are relative to
+# the working directory and docker-compose mounts ./data at /app/data.
 EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

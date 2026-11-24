@@ -12,7 +12,7 @@ from langchain_core.messages import HumanMessage
 from core.config import settings
 from core.logger import get_logger
 from ai.llm import get_embeddings, get_vision_llm
-import fitz
+import pymupdf
 import pdfplumber
 
 logger = get_logger(__name__)
@@ -240,7 +240,7 @@ def _extract_and_caption_images(file_path: str) -> list[Document]:
     documents = []
     filename = os.path.basename(file_path)
 
-    pdf_document = fitz.open(file_path)
+    pdf_document = pymupdf.open(file_path)
 
     for page_num in range(len(pdf_document)):
         page = pdf_document[page_num]
@@ -288,7 +288,7 @@ def enrich_with_images(pdf_files: list[str]):
     # Count total images to caption (for progress tracking)
     total_images = 0
     for file_path in pdf_files:
-        pdf_doc = fitz.open(file_path)
+        pdf_doc = pymupdf.open(file_path)
         for page_num in range(len(pdf_doc)):
             page = pdf_doc[page_num]
             for img in page.get_images(full=True):

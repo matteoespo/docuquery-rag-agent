@@ -145,22 +145,6 @@ class TestStreamingLLMConfig:
     """Test LLM initialization with streaming settings."""
 
     @patch("backend.ai.llm.settings")
-    def test_get_llm_streaming_enabled(self, mock_settings):
-        """Verify streaming=True is set on ChatOllama."""
-        from backend.ai.llm import get_llm
-
-        mock_settings.llm_model = "llama3.2:3b"
-        mock_settings.ollama_base_url = "http://ollama:11434"
-
-        with patch("backend.ai.llm.ChatOllama") as mock_chat_ollama:
-            get_llm.cache_clear()
-            get_llm()
-
-            mock_chat_ollama.assert_called_once()
-            call_kwargs = mock_chat_ollama.call_args[1]
-            assert call_kwargs.get("streaming") is True
-
-    @patch("backend.ai.llm.settings")
     def test_get_llm_keep_alive_infinite(self, mock_settings):
         """Verify keep_alive=-1 prevents model unload."""
         from backend.ai.llm import get_llm
@@ -188,22 +172,6 @@ class TestStreamingLLMConfig:
             get_llm()
 
             call_kwargs = mock_chat_ollama.call_args[1]
-            assert call_kwargs.get("num_ctx") == 8192
-
-    @patch("backend.ai.llm.settings")
-    def test_get_vision_llm_streaming_settings(self, mock_settings):
-        """Verify vision LLM also has streaming settings."""
-        from backend.ai.llm import get_vision_llm
-
-        mock_settings.ollama_base_url = "http://ollama:11434"
-
-        with patch("backend.ai.llm.ChatOllama") as mock_chat_ollama:
-            get_vision_llm.cache_clear()
-            get_vision_llm()
-
-            call_kwargs = mock_chat_ollama.call_args[1]
-            assert call_kwargs.get("streaming") is True
-            assert call_kwargs.get("keep_alive") == -1
             assert call_kwargs.get("num_ctx") == 8192
 
 

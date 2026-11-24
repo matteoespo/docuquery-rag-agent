@@ -36,7 +36,6 @@ services:
       - ./data:/app/data
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     env_file:
       - .env
     depends_on:
