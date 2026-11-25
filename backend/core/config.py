@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     llm_model: str = "phi4-mini"
     vision_model: str = "moondream"
     embedding_model: str = "nomic-embed-text"
+    # GPU layers for the embedding model; 0 = run it on the CPU. On a 4 GB GPU the
+    # chat model is kept loaded (keep_alive=-1) and Ollama then fails to load the
+    # embedder next to it ("model failed to load"), so retrieval breaks. The
+    # embedder is small (137M): ~0.1-0.3 s per query on CPU. None = Ollama decides.
+    embedding_num_gpu: int | None = 0
 
     # ── Paths ──
     db_dir: str = "data/chroma_db"
