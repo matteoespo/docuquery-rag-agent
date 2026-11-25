@@ -67,3 +67,31 @@ def test_stream_reports_agent_failure_as_error_event():
     assert len(events) == 1
     assert events[0]["type"] == "error"
     assert "Ollama" in events[0]["message"]
+
+
+def test_closing_the_stream_stops_the_agent():
+    """Stop button: the client disconnects, Starlette closes/cancels the response
+    generator, and that must propagate into the agent run (not be swallowed)."""
+    state = {"started": False, "closed": False, "finished": False}
+
+    class SlowAgent:
+        async def astream_events(self, *args, **kwargs):
+            state["started"] = True
+            try:
+                yield {"event": "on_chain_start", "name": "retrieve", "tags": [],
+                       "metadata": {"langgraph_node": "retrieve"}}
+                await asyncio.sleep(10)
+                state["finished"] = True
+                yield {"event": "on_chain_end", "name": "retrieve"}
+            finally:
+                state["closed"] = True
+
+    async def scenario():
+        stream = generate_tokens(SlowAgent(), {})
+        first = await stream.__anext__()
+        await stream.aclose()  # what Starlette does when the client goes away
+        return json.loads(first[len("data: "):])
+
+    first = asyncio.run(asyncio.wait_for(scenario(), timeout=5))
+    assert first == {"type": "status", "text": "Searching your documents..."}
+    assert state == {"started": True, "closed": True, "finished": False}
