@@ -56,7 +56,10 @@ def test_contextualize_falls_back_to_query_on_llm_error():
 
 # Grader
 
-def test_grader_sees_the_documents():
+def test_grader_sees_the_documents(monkeypatch):
+    import backend.ai.nodes.generation as generation
+
+    monkeypatch.setattr(generation.settings, "enable_answer_grader", True)
     llm = scripted(grader_says="no")
     state = {
         "query": "Input voltage?",
@@ -165,5 +168,6 @@ def test_graph_retrieves_with_rewritten_followup():
     assert len(generation) == 1
     assert [m.type for m in generation[0]] == ["system", "human", "ai", "human"]
     assert generation[0][-1].content.endswith("Question: what about its voltage?")
-    # The relevance gate decided on the score alone: rewrite, route, answer, grade.
-    assert len(llm.calls) == 4
+    # Defaults: the relevance gate decides on the score alone and the grader is
+    # off, so only rewrite, route and answer call the LLM.
+    assert len(llm.calls) == 3
