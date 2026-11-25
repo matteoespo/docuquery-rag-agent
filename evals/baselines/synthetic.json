@@ -1,0 +1,1247 @@
+{
+  "dataset": "synthetic",
+  "model": "llama3.2:3b",
+  "embedding_model": "nomic-embed-text",
+  "retrieval_k": 3,
+  "commit": "1ec0737",
+  "summary": {
+    "cases": 24,
+    "answer_accuracy": 0.875,
+    "route_accuracy": 0.958,
+    "retrieval_hit_rate": 0.9,
+    "citation_accuracy": 0.8,
+    "hallucinated_citation_rate": 0.0,
+    "web_search_rate_answerable": 0.6,
+    "avg_llm_calls": 4.08,
+    "median_latency_s": 13.98,
+    "p90_latency_s": 17.87,
+    "answer_accuracy_by_kind": {
+      "compare": 1.0,
+      "distractor": 1.0,
+      "followup": 0.667,
+      "lookup": 0.875,
+      "out_of_scope": 1.0,
+      "troubleshooting": 0.667,
+      "unanswerable": 1.0
+    }
+  },
+  "rows": [
+    {
+      "case": {
+        "id": "lookup-q7-voltage",
+        "kind": "lookup",
+        "question": "What input voltage does the Zorvex Q7 pump need?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          "36v"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the Zorvex Q7 pump requires an input voltage of 36 V DC. [Source: zorvex_q7_manual.pdf, Page: 2]",
+        "search_query": "What input voltage does the Zorvex Q7 pump need?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 5,
+        "latency_s": 17.5
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "lookup-q7-ground",
+        "kind": "lookup",
+        "question": "Which terminal is used to ground the Zorvex Q7?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          "g3"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the Zorvex Q7 must be grounded via terminal G3. [Source: zorvex_q7_manual.pdf, Page: 2]",
+        "search_query": "Which terminal is used to ground the Zorvex Q7?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            3
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 11.66
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "lookup-q7-oil",
+        "kind": "lookup",
+        "question": "Which hydraulic oil should be used in the Zorvex Q7?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "hv-46"
+        ],
+        "must_not_contain": [
+          "hv-68"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, [Source: zorvex_q7_manual.pdf, Page: 3], the recommended hydraulic oil for the Zorvex Q7 is HV-46.",
+        "search_query": "Which hydraulic oil should be used in the Zorvex Q7?",
+        "retrieved": [
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 5,
+        "latency_s": 16.85
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "lookup-q7-flow",
+        "kind": "lookup",
+        "question": "What is the maximum flow rate of the Zorvex Q7?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ]
+        ],
+        "must_contain": [
+          "42"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the technical manual, [Source: zorvex_q7_manual.pdf, Page: 1], the maximum flow rate of the Zorvex Q7 Hydraulic Pump is 42 litres per minute.",
+        "search_query": "What is the maximum flow rate of the Zorvex Q7?",
+        "retrieved": [
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 13.38
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "lookup-q9-current",
+        "kind": "lookup",
+        "question": "What is the maximum current draw of the Zorvex Q9?",
+        "sources": [
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          "22a"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "I don't have information on the maximum current draw of the Zorvex Q9 from our previous conversation. However, according to the manual [Source: zorvex_q7_manual.pdf, Page: 2], the maximum current draw for a different model (Zorvex Q7) is 14 A.\n\nFor the Zorvex Q9, I found that the manual [Source: zorvex_q9_manual.pdf, Page: 1] states it's not specified in the provided section.",
+        "search_query": "What is the maximum current draw of the Zorvex Q9?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 5,
+        "latency_s": 20.11
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": false,
+        "retrieval_hit": true,
+        "citation_ok": false,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "lookup-kx-speed",
+        "kind": "lookup",
+        "question": "What is the maximum belt speed of the Kestrel KX-200?",
+        "sources": [
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          "2.4"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the Kestrel KX-200 manual, [Source: kestrel_kx200_manual.pdf, Page: 2], the maximum belt speed of the Kestrel KX-200 conveyor controller is 2.4 metres per second.",
+        "search_query": "What is the maximum belt speed of the Kestrel KX-200?",
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 13.37
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "lookup-kx-temp",
+        "kind": "lookup",
+        "question": "What is the operating temperature range of the Kestrel KX-200 controller?",
+        "sources": [
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ]
+        ],
+        "must_contain": [
+          "-10",
+          "50"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the user manual, the operating temperature range for the Kestrel KX-200 Conveyor Controller is -10 to 50 degrees Celsius. [Source: kestrel_kx200_manual.pdf, Page: 1]",
+        "search_query": "What is the operating temperature range of the Kestrel KX-200 controller?",
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 14.62
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "lookup-kx-estop",
+        "kind": "lookup",
+        "question": "How must the emergency stop be wired on the Kestrel KX-200?",
+        "sources": [
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          [
+            "normally closed",
+            "(nc)",
+            "nc contact"
+          ],
+          "x5"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the emergency stop must be wired as a normally closed (NC) contact on terminal X5. [Source: kestrel_kx200_manual.pdf, Page: 2]",
+        "search_query": "How must the emergency stop be wired on the Kestrel KX-200?",
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 12.5
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "distractor-q9-filter",
+        "kind": "distractor",
+        "question": "What is the part number of the Zorvex Q9 filter cartridge?",
+        "sources": [
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "zf-310"
+        ],
+        "must_not_contain": [
+          "zf-220"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the part number of the Zorvex Q9 filter cartridge is ZF-310. [Source: zorvex_q9_manual.pdf, Page: 3]",
+        "search_query": "What is the part number of the Zorvex Q9 filter cartridge?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 13.45
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "distractor-q9-interval",
+        "kind": "distractor",
+        "question": "How often should the Zorvex Q9 filter be replaced?",
+        "sources": [
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "600"
+        ],
+        "must_not_contain": [
+          "400operating"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, I don't have specific information on the replacement frequency for the Zorvex Q9 filter. However, I can tell you that the manual does provide guidance on replacing other components, such as the filter cartridge (part ZF-310) in the Zorvex Q9, which should be replaced every 600 operating hours.\n\n[Source: zorvex_q9_manual.pdf, Page: 3]\n\nIf you're looking for information on the replacement frequency for a specific component, I recommend consulting the relevant manual or contacting the manufacturer directly.",
+        "search_query": "How often should the Zorvex Q9 filter be replaced?",
+        "retrieved": [
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 15.05
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "distractor-q7-filter",
+        "kind": "distractor",
+        "question": "How often should the filter of the Zorvex Q7 be replaced?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "400"
+        ],
+        "must_not_contain": [
+          "600operating"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the filter cartridge (part ZF-220) for the Zorvex Q7 should be replaced every 400 operating hours. [Source: zorvex_q7_manual.pdf, Page: 3]",
+        "search_query": "How often should the filter of the Zorvex Q7 be replaced?",
+        "retrieved": [
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 12.9
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "distractor-q9-voltage",
+        "kind": "distractor",
+        "question": "What input voltage does the Zorvex Q9 require?",
+        "sources": [
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          "48v"
+        ],
+        "must_not_contain": [
+          "36v"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the Zorvex Q9 requires an input voltage of 48 V DC. [Source: zorvex_q9_manual.pdf, Page: 2]",
+        "search_query": "What input voltage does the Zorvex Q9 require?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 5,
+        "latency_s": 16.49
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "table-q7-e3",
+        "kind": "troubleshooting",
+        "question": "What does error code E3 mean on the Zorvex Q7 and what should I do?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ]
+        ],
+        "must_contain": [
+          "overpressure",
+          "rv-2"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, error code E3 indicates \"Overpressure\" (Source: zorvex_q7_manual.pdf, Page: 4). To resolve this issue, you should inspect the relief valve RV-2 (Source: zorvex_q7_manual.pdf, Page: 4).",
+        "search_query": "What does error code E3 mean on the Zorvex Q7 and what should I do?",
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 13.9
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": false,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "table-q7-e4",
+        "kind": "troubleshooting",
+        "question": "The Zorvex Q7 shows error E4. Which connector should I check?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ]
+        ],
+        "must_contain": [
+          "j7"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, for error code E4 - Sensor fault, you should check the pressure sensor cable on connector J7 [Source: zorvex_q7_manual.pdf, Page: 4].",
+        "search_query": "The Zorvex Q7 shows error E4. Which connector should I check?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            3
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 12.61
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "procedure-kx-firmware",
+        "kind": "troubleshooting",
+        "question": "How long do I have to hold the MODE button to update the Kestrel KX-200 firmware?",
+        "sources": [
+          [
+            "kestrel_kx200_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "10second"
+        ]
+      },
+      "result": {
+        "route": "out_of_scope",
+        "answer": "I'm a technical assistant specialized in documentation and manuals. I can answer questions based on the uploaded documents. Please ask me something related to your technical documentation!",
+        "search_query": "How long do I have to hold the MODE button to update the Kestrel KX-200 firmware?",
+        "retrieved": [],
+        "nodes": [
+          "contextualize",
+          "block"
+        ],
+        "llm_calls": 1,
+        "latency_s": 1.34
+      },
+      "score": {
+        "route_ok": false,
+        "answer_ok": false,
+        "retrieval_hit": false,
+        "citation_ok": false,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "compare-voltage",
+        "kind": "compare",
+        "question": "Which pump needs a higher input voltage, the Zorvex Q7 or the Zorvex Q9?",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          "q9"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the retrieved context, [Source: zorvex_q7_manual.pdf, Page: 2] states that the maximum current draw for the Zorvex Q7 is 14 A, and it requires a grounding via terminal G3. \n\nOn the other hand, [Source: zorvex_q9_manual.pdf, Page: 1] does not explicitly state the input voltage for the Zorvex Q9, but [Source: zorvex_q9_manual.pdf, Page: 2] states that it requires a grounding via terminal G5 and has a maximum current draw of 22 A.\n\nHowever, since we know the maximum current draw for both pumps, we can infer that the Zorvex Q7 needs a lower input voltage. \n\nUnfortunately, I don't have enough information to determine which pump needs a higher input voltage based on the provided context.",
+        "search_query": "Which pump needs a higher input voltage, the Zorvex Q7 or the Zorvex Q9?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 16.3
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "compare-oil-interval",
+        "kind": "compare",
+        "question": "Compare the oil change intervals of the Zorvex Q7 and the Zorvex Q9.",
+        "sources": [
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "1200",
+          "1500"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manuals, the Zorvex Q7 requires hydraulic oil changes every 1200 operating hours, while the Zorvex Q9 requires hydraulic oil changes every 1500 operating hours.\n\n[Source: zorvex_q7_manual.pdf, Page: 3]\n[Source: zorvex_q9_manual.pdf, Page: 3]\n\nThe Zorvex Q7 has a shorter oil change interval of 300 hours compared to the Zorvex Q9.",
+        "search_query": "Compare the oil change intervals of the Zorvex Q7 and the Zorvex Q9.",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 5,
+        "latency_s": 20.87
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "followup-kx-speed",
+        "kind": "followup",
+        "question": "What's its maximum belt speed?",
+        "history": [
+          {
+            "role": "user",
+            "content": "What is the Kestrel KX-200?"
+          },
+          {
+            "role": "assistant",
+            "content": "The Kestrel KX-200 is a controller for belt conveyors with up to four motors."
+          }
+        ],
+        "sources": [
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ]
+        ],
+        "must_contain": [
+          "2.4"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the maximum belt speed of the Kestrel KX-200 Conveyor Controller is 2.4 metres per second [Source: kestrel_kx200_manual.pdf, Page: 2].",
+        "search_query": "What is the maximum belt speed of a Kestrel KX-200?",
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate"
+        ],
+        "llm_calls": 5,
+        "latency_s": 14.21
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "followup-kx-firmware",
+        "kind": "followup",
+        "question": "How do I update its firmware?",
+        "history": [
+          {
+            "role": "user",
+            "content": "What is the Kestrel KX-200?"
+          },
+          {
+            "role": "assistant",
+            "content": "The Kestrel KX-200 is a controller for belt conveyors with up to four motors."
+          }
+        ],
+        "sources": [
+          [
+            "kestrel_kx200_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "mode"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "To update the firmware of your Kestrel KX-200 Conveyor Controller, follow these steps:\n\n1. Copy the firmware file KX200.bin to a FAT32 USB drive (Source: [Source: kestrel_kx200_manual.pdf, Page: 3]).\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.\n\nPlease note that you should refer to the user manual for any specific instructions or precautions related to firmware updates (Source: [Source: kestrel_kx200_manual.pdf, Page: 3]).",
+        "search_query": "How can I update the firmware of a controller designed for belt conveyors with up to four motors?",
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            3
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            2
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate"
+        ],
+        "llm_calls": 5,
+        "latency_s": 17.87
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "followup-q9-oil",
+        "kind": "followup",
+        "question": "Which oil does it use?",
+        "history": [
+          {
+            "role": "user",
+            "content": "Tell me about the Zorvex Q9 pump."
+          },
+          {
+            "role": "assistant",
+            "content": "The Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery."
+          }
+        ],
+        "sources": [
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ]
+        ],
+        "must_contain": [
+          "hv-68"
+        ],
+        "must_not_contain": [
+          "hv-46"
+        ]
+      },
+      "result": {
+        "route": "answer",
+        "answer": "According to the manual, the Zorvex Q7 (and by extension, I assume, the Q9 as well) uses HV-46 hydraulic oil. [Source: zorvex_q7_manual.pdf, Page: 3]",
+        "search_query": "What type of oil does the Zorvex Q9 pump use?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "generate",
+          "websearch",
+          "generate",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 8,
+        "latency_s": 23.77
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": false,
+        "retrieval_hit": false,
+        "citation_ok": false,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "unanswerable-q7-warranty",
+        "kind": "unanswerable",
+        "question": "What is the warranty period of the Zorvex Q7?",
+        "expect_refusal": true
+      },
+      "result": {
+        "route": "answer",
+        "answer": "I don't have information on the warranty period of the Zorvex Q7 from the retrieved context. However, I can suggest checking the manual or contacting the manufacturer directly for more information.\n\n[Source: zorvex_q7_manual.pdf, Page: Not Available]\n\nIf you need further assistance, please let me know and I'll be happy to help.",
+        "search_query": "What is the warranty period of the Zorvex Q7?",
+        "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 13.66
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": null,
+        "citation_ok": null,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "unanswerable-kx-price",
+        "kind": "unanswerable",
+        "question": "How much does the Kestrel KX-200 cost?",
+        "expect_refusal": true
+      },
+      "result": {
+        "route": "answer",
+        "answer": "I don't have information on the pricing of the Kestrel KX-200 Conveyor Controller from our previous conversation. The manual I was provided with only covers the basics of the product, such as its operating temperature range and electrical specifications.\n\nHowever, I can suggest that you contact the manufacturer or a authorized distributor for more detailed information on pricing and availability.",
+        "search_query": "How much does the Kestrel KX-200 cost?",
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ]
+        ],
+        "nodes": [
+          "contextualize",
+          "retrieve",
+          "websearch",
+          "generate"
+        ],
+        "llm_calls": 4,
+        "latency_s": 14.07
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": null,
+        "citation_ok": null,
+        "hallucinated_citation": false,
+        "web_search": true
+      }
+    },
+    {
+      "case": {
+        "id": "oos-greeting",
+        "kind": "out_of_scope",
+        "question": "hi, how are you?",
+        "expect_route": "out_of_scope"
+      },
+      "result": {
+        "route": "out_of_scope",
+        "answer": "I'm a technical assistant specialized in documentation and manuals. I can answer questions based on the uploaded documents. Please ask me something related to your technical documentation!",
+        "search_query": "hi, how are you?",
+        "retrieved": [],
+        "nodes": [
+          "contextualize",
+          "block"
+        ],
+        "llm_calls": 1,
+        "latency_s": 1.34
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": null,
+        "citation_ok": null,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    },
+    {
+      "case": {
+        "id": "oos-poem",
+        "kind": "out_of_scope",
+        "question": "Write a short poem about cats.",
+        "expect_route": "out_of_scope"
+      },
+      "result": {
+        "route": "out_of_scope",
+        "answer": "I'm a technical assistant specialized in documentation and manuals. I can answer questions based on the uploaded documents. Please ask me something related to your technical documentation!",
+        "search_query": "Write a short poem about cats.",
+        "retrieved": [],
+        "nodes": [
+          "contextualize",
+          "block"
+        ],
+        "llm_calls": 1,
+        "latency_s": 0.3
+      },
+      "score": {
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": null,
+        "citation_ok": null,
+        "hallucinated_citation": false,
+        "web_search": false
+      }
+    }
+  ]
+}
