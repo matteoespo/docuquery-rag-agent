@@ -61,7 +61,11 @@ EMBEDDING_PREFIXES = {
 @lru_cache
 def get_embeddings() -> Embeddings:
     """Return the embedding model (cached singleton), with task prefixes if it needs them."""
-    base = OllamaEmbeddings(model=settings.embedding_model, base_url=settings.ollama_base_url)
+    base = OllamaEmbeddings(
+        model=settings.embedding_model,
+        base_url=settings.ollama_base_url,
+        num_gpu=settings.embedding_num_gpu,
+    )
     for family, (query_prefix, document_prefix) in EMBEDDING_PREFIXES.items():
         if settings.embedding_model.startswith(family):
             return PrefixedEmbeddings(base, query_prefix, document_prefix)

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip } from 'lucide-react';
+import { Send, Paperclip, Square } from 'lucide-react';
 import { useChatStore } from '@/store/chat-store';
 
 export function ChatInput() {
   const [inputValue, setInputValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { sendMessage, isStreaming } = useChatStore();
+  const { sendMessage, stopGeneration, isStreaming } = useChatStore();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -59,14 +59,28 @@ export function ChatInput() {
           rows={1}
         />
 
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!inputValue.trim() || isStreaming}
-          className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 flex-shrink-0 shadow-lg shadow-blue-600/20"
-        >
-          <Send size={18} className="ml-0.5" />
-        </button>
+        {isStreaming ? (
+          <button
+            type="button"
+            onClick={stopGeneration}
+            title="Stop generating"
+            aria-label="Stop generating"
+            className="p-3 bg-zinc-700 text-zinc-100 rounded-full hover:bg-zinc-600 transition-colors flex-shrink-0"
+          >
+            <Square size={18} fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!inputValue.trim()}
+            title="Send"
+            aria-label="Send"
+            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 flex-shrink-0 shadow-lg shadow-blue-600/20"
+          >
+            <Send size={18} className="ml-0.5" />
+          </button>
+        )}
       </div>
       <div className="text-center mt-3 text-xs text-zinc-500">
         DocuQuery can make mistakes. Consider verifying important information.

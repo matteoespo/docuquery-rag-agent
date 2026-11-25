@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from langsmith import Client
 from starlette.background import BackgroundTasks
 
@@ -140,6 +140,18 @@ def delete_document(filename: str) -> dict:
     }
 
 
+@router.get("/documents/{filename}/file")
+def get_document_file(filename: str) -> FileResponse:
+    """Serve an uploaded PDF inline, so citations can open it (e.g. ``#page=5``)."""
+    if any(c in filename for c in ("/", "\\", "..")):
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+    file_path = Path(settings.manual_path) / filename
+    if file_path.suffix.lower() != ".pdf" or not file_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Document '{filename}' not found.")
+    return FileResponse(file_path, media_type="application/pdf", filename=filename,
+                        content_disposition_type="inline")
+
+
 @router.get("/analytics")
 def get_analytics() -> dict:
     """Get analytics data from LangSmith."""
@@ -209,11 +221,43 @@ async def chat_with_agent(query: QueryRequest, request: Request) -> dict:
     return {"answer": response["answer"]}
 
 
-async def generate_tokens(agent, initial_state: AgentState) -> AsyncGenerator[str, None]:
-    """Stream tokens from LangGraph agent using astream_events (v2).
+# Shown to the user while a node runs, until the answer starts streaming.
+NODE_STATUS = {
+    "contextualize": "Understanding your follow-up question...",
+    "retrieve": "Searching your documents...",
+    "websearch": "Searching the web...",
+    "generate": "Writing the answer...",
+}
 
-    Filters for 'on_chat_model_stream' events to extract raw text tokens.
-    If the agent fails, an ``error`` event is sent instead of the completion marker.
+
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+def _sources(documents) -> list[dict]:
+    """Retrieved chunks as {source, page, url}, de-duplicated, in retrieval order."""
+    seen, out = set(), []
+    for doc in documents:
+        source = str(doc.metadata.get("source", ""))
+        is_web = source.startswith(("http://", "https://"))
+        name = source if is_web else os.path.basename(source)
+        page = None if is_web else doc.metadata.get("page")
+        if not name or (name, page) in seen:
+            continue
+        seen.add((name, page))
+        out.append({"source": name, "page": page, "url": source if is_web else None})
+    return out
+
+
+async def generate_tokens(agent, initial_state: AgentState) -> AsyncGenerator[str, None]:
+    """Server-sent events for one answer. Each event is ``{"type": ...}``:
+
+    - ``status``: what the agent is doing (until the answer starts)
+    - ``sources``: the chunks the answer is generated from (sent before its tokens)
+    - ``token``: a piece of the answer
+    - ``reset``: the answer so far was rejected and is being regenerated
+    - ``error``: the agent failed (instead of ``done``)
+    - ``done``: the answer is complete
     """
     try:
         async for event in _answer_events(agent, initial_state):
@@ -221,50 +265,56 @@ async def generate_tokens(agent, initial_state: AgentState) -> AsyncGenerator[st
     except Exception:
         logger.exception("Agent failed while answering")
         message = "Something went wrong while generating the answer. Check that Ollama is running and try again."
-        yield f"data: {json.dumps({'error': message})}\n\n"
+        yield _sse({"type": "error", "message": message})
 
 
 async def _answer_events(agent, initial_state: AgentState) -> AsyncGenerator[str, None]:
-    """SSE lines for one agent run (tokens, resets, final answer, completion marker)."""
     has_yielded = False
     final_answer = None
     generation_count = 0
+    documents = []
+    has_history = bool(initial_state.get("chat_history"))
 
-    async for event in agent.astream_events(
-        initial_state,
-        version="v2",
-        config=None,
-    ):
+    async for event in agent.astream_events(initial_state, version="v2", config=None):
         event_type = event.get("event")
         tags = event.get("tags", [])
+        name = event.get("name")
+        # A node's own run (not one of the runnables inside it).
+        is_node = name in NODE_STATUS and event.get("metadata", {}).get("langgraph_node") == name
 
-        # Detect when the LLM STARTS generating
-        if event_type == "on_chat_model_start" and "generate_node" in tags:
+        if event_type == "on_chain_start" and is_node and not has_yielded:
+            if name != "contextualize" or has_history:  # no rewrite happens without history
+                yield _sse({"type": "status", "text": NODE_STATUS[name]})
+
+        elif event_type == "on_chain_end" and is_node and name in ("retrieve", "websearch"):
+            output = event.get("data", {}).get("output") or {}
+            documents = output.get("documents", documents)
+
+        elif event_type == "on_chat_model_start" and "generate_node" in tags:
             generation_count += 1
             if generation_count > 1:
-                # The previous answer was rejected by the grader: tell the client
-                # to discard what it has shown before the new answer streams in.
-                yield f"data: {json.dumps({'reset': True, 'status': 'Searching the web for more information...'})}\n\n"
+                # The previous answer was rejected by the grader: the client
+                # discards what it has shown before the new answer streams in.
+                has_yielded = False
+                yield _sse({"type": "reset", "status": NODE_STATUS["websearch"]})
+            yield _sse({"type": "sources", "sources": _sources(documents)})
 
-        # Stream the raw text tokens
         elif event_type == "on_chat_model_stream" and "generate_node" in tags:
             chunk = event.get("data", {}).get("chunk")
-            if chunk and hasattr(chunk, "content"):
-                token = chunk.content
-                if token:
-                    has_yielded = True
-                    yield f"data: {json.dumps({'token': token})}\n\n"
+            token = getattr(chunk, "content", None)
+            if token:
+                has_yielded = True
+                yield _sse({"type": "token", "text": token})
 
-        # Catch non-streaming responses (like the out-of-scope block node)
+        # Non-streamed answers (the out-of-scope reply)
         elif event_type == "on_chain_end" and not has_yielded:
             output = event.get("data", {}).get("output")
-            if isinstance(output, dict) and "answer" in output:
+            if isinstance(output, dict) and output.get("answer"):
                 final_answer = output["answer"]
 
     if not has_yielded and final_answer:
-        yield f"data: {json.dumps({'token': final_answer})}\n\n"
-
-    yield f"data: {json.dumps({'token': '[stream completed]'})}\n\n"
+        yield _sse({"type": "token", "text": final_answer})
+    yield _sse({"type": "done"})
 
 
 @router.post("/chat/stream")

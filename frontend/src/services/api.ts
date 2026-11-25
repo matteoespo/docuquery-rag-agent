@@ -1,22 +1,33 @@
-import { ENDPOINTS } from '@/constants';
-import type { UploadResponse, IngestionStatus, AnalyticsData } from '@/types';
+import { API_BASE_URL, ENDPOINTS } from '@/constants';
+import type { UploadResponse, IngestionStatus, AnalyticsData, Source } from '@/types';
 
-/** `reset`: the backend rejected the answer streamed so far and is regenerating it. */
+/** Events of the chat stream (see backend `generate_tokens`). `reset`: the answer
+ * streamed so far was rejected and is being regenerated. */
 export type StreamEvent =
   | { type: 'token'; text: string }
+  | { type: 'status'; text: string }
+  | { type: 'sources'; sources: Source[] }
   | { type: 'reset'; status?: string };
+
+/** URL that opens an uploaded PDF, optionally at a page. */
+export function documentFileUrl(fileName: string, page?: number | string | null): string {
+  const base = `${API_BASE_URL}/api/documents/${encodeURIComponent(fileName)}/file`;
+  return page ? `${base}#page=${encodeURIComponent(String(page))}` : base;
+}
 
 /** The backend reached the agent but answering failed (e.g. Ollama is down). */
 export class AgentError extends Error {}
 
 export async function* streamChat(
   query: string,
-  chatHistory: { role: string; content: string }[]
+  chatHistory: { role: string; content: string }[],
+  signal?: AbortSignal
 ): AsyncGenerator<StreamEvent, void, unknown> {
   const response = await fetch(ENDPOINTS.CHAT_STREAM, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, chat_history: chatHistory }),
+    signal,
   });
 
   if (!response.ok) {
@@ -51,13 +62,12 @@ export async function* streamChat(
         continue; // skip malformed JSON
       }
       // Thrown outside the JSON.parse try so it isn't swallowed as malformed input.
-      if (data.error) throw new AgentError(data.error);
-      if (data.reset) {
-        yield { type: 'reset', status: data.status };
-        continue;
-      }
-      if (data.token === '[stream completed]') return;
-      if (data.token) yield { type: 'token', text: data.token };
+      if (data.type === 'error') throw new AgentError(data.message);
+      if (data.type === 'done') return;
+      if (data.type === 'token' && data.text) yield { type: 'token', text: data.text };
+      else if (data.type === 'status') yield { type: 'status', text: data.text };
+      else if (data.type === 'sources') yield { type: 'sources', sources: data.sources ?? [] };
+      else if (data.type === 'reset') yield { type: 'reset', status: data.status };
     }
   }
 }
