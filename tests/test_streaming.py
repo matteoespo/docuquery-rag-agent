@@ -73,7 +73,12 @@ class TestStreamingEndpoint:
         assert resp.headers["content-type"].startswith("text/event-stream")
         assert resp.headers["cache-control"] == "no-cache"
         events = [json.loads(line[len("data: "):]) for line in resp.text.splitlines() if line.startswith("data: ")]
-        assert events == [{"token": "36 V "}, {"token": "DC"}, {"token": "[stream completed]"}]
+        assert events == [
+            {"type": "sources", "sources": []},
+            {"type": "token", "text": "36 V "},
+            {"type": "token", "text": "DC"},
+            {"type": "done"},
+        ]
         assert received["query"] == "Input voltage?"
         assert received["chat_history"] == history
         assert received["retries"] == 0
@@ -111,3 +116,91 @@ class TestStreamingLLMConfig:
 
             call_kwargs = mock_chat_ollama.call_args[1]
             assert call_kwargs.get("num_ctx") == 8192
+
+
+def _node(event, name, output=None):
+    e = {"event": event, "name": name, "tags": [], "metadata": {"langgraph_node": name}}
+    if output is not None:
+        e["data"] = {"output": output}
+    return e
+
+
+class TestStreamingStatusAndSources:
+    """status events while nodes run; sources (deduplicated) before the answer tokens."""
+
+    def _events(self, agent_events, chat_history=()):
+        from langchain_core.messages import AIMessageChunk
+
+        from backend.api.routers import generate_tokens
+
+        class FakeAgent:
+            async def astream_events(self, state, **kwargs):
+                for e in agent_events:
+                    yield e
+                yield {"event": "on_chat_model_start", "tags": ["generate_node"]}
+                yield {"event": "on_chat_model_stream", "tags": ["generate_node"],
+                       "data": {"chunk": AIMessageChunk(content="2.4 m/s")}}
+
+        async def collect():
+            state = {"query": "q", "chat_history": list(chat_history)}
+            return [json.loads(line[len("data: "):]) async for line in generate_tokens(FakeAgent(), state)]
+
+        return asyncio.run(collect())
+
+    def test_status_then_sources_then_tokens(self):
+        docs = [
+            Document(page_content="a", metadata={"source": "data/pdfs/kx200.pdf", "page": 2}),
+            Document(page_content="b", metadata={"source": "data/pdfs/kx200.pdf", "page": 2}),
+            Document(page_content="c", metadata={"source": "https://example.org/kx", "page": "web"}),
+        ]
+        events = self._events([
+            _node("on_chain_start", "contextualize"),
+            _node("on_chain_start", "retrieve"),
+            # a runnable inside the node must not produce its own status
+            {"event": "on_chain_start", "name": "RunnableSequence", "metadata": {"langgraph_node": "retrieve"}},
+            _node("on_chain_end", "retrieve", {"documents": docs}),
+            _node("on_chain_start", "generate"),
+        ])
+        assert events == [
+            {"type": "status", "text": "Searching your documents..."},
+            {"type": "status", "text": "Writing the answer..."},
+            {"type": "sources", "sources": [
+                {"source": "kx200.pdf", "page": 2, "url": None},
+                {"source": "https://example.org/kx", "page": None, "url": "https://example.org/kx"},
+            ]},
+            {"type": "token", "text": "2.4 m/s"},
+            {"type": "done"},
+        ]
+
+    def test_followup_rewrite_status_only_with_history(self):
+        events = self._events([_node("on_chain_start", "contextualize")],
+                              chat_history=[{"role": "user", "content": "hi"}])
+        assert events[0] == {"type": "status", "text": "Understanding your follow-up question..."}
+
+
+class TestDocumentFileEndpoint:
+    def _client(self, tmp_path, monkeypatch):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        import api.routers as routers
+
+        monkeypatch.setattr(routers.settings, "manual_path", str(tmp_path))
+        app = FastAPI()
+        app.include_router(routers.router)
+        return TestClient(app)
+
+    def test_serves_pdf_inline(self, tmp_path, monkeypatch):
+        (tmp_path / "A Review for  Testing.pdf").write_bytes(b"%PDF-1.4 test")
+        resp = self._client(tmp_path, monkeypatch).get("/api/documents/A Review for  Testing.pdf/file")
+        assert resp.status_code == 200
+        assert resp.headers["content-type"] == "application/pdf"
+        assert resp.headers["content-disposition"].startswith("inline")
+        assert resp.content == b"%PDF-1.4 test"
+
+    def test_missing_non_pdf_and_traversal_are_rejected(self, tmp_path, monkeypatch):
+        (tmp_path / "notes.txt").write_text("secret")
+        client = self._client(tmp_path, monkeypatch)
+        assert client.get("/api/documents/missing.pdf/file").status_code == 404
+        assert client.get("/api/documents/notes.txt/file").status_code == 404
+        assert client.get("/api/documents/..secret.pdf/file").status_code == 400

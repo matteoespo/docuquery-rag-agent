@@ -65,5 +65,5 @@ def test_stream_reports_agent_failure_as_error_event():
     events = asyncio.run(collect())
 
     assert len(events) == 1
-    assert "Ollama" in events[0]["error"]
-    assert {"token": "[stream completed]"} not in events
+    assert events[0]["type"] == "error"
+    assert "Ollama" in events[0]["message"]

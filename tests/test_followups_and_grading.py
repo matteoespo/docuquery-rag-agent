@@ -127,10 +127,12 @@ def test_stream_resets_client_when_answer_is_regenerated():
         return [json.loads(line[len("data: "):]) async for line in generate_tokens(agent, {})]
 
     assert asyncio.run(collect()) == [
-        {"token": "bad answer"},
-        {"reset": True, "status": "Searching the web for more information..."},
-        {"token": "good answer"},
-        {"token": "[stream completed]"},
+        {"type": "sources", "sources": []},
+        {"type": "token", "text": "bad answer"},
+        {"type": "reset", "status": "Searching the web..."},
+        {"type": "sources", "sources": []},
+        {"type": "token", "text": "good answer"},
+        {"type": "done"},
     ]
 
 
