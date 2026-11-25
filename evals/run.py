@@ -38,6 +38,7 @@ def parse_args():
     p.add_argument("--dataset", choices=DATASETS, default="synthetic")
     p.add_argument("--cases", help="comma-separated case ids to run (default: all)")
     p.add_argument("--ollama-url", default="http://localhost:11434")
+    p.add_argument("--model", help="chat model to evaluate (default: LLM_MODEL from settings/.env)")
     p.add_argument("--out", type=Path, help="results JSON path (default: evals/results/<dataset>-<time>.json)")
     p.add_argument("--compare", type=Path, help="earlier results JSON to compare the summary against")
     p.add_argument("--rescore", type=Path, help="re-apply current scoring to a saved results JSON (no model calls)")
@@ -57,7 +58,7 @@ def rescore(path: Path) -> None:
     print(f"\nRescored {path}")
 
 
-def configure_environment(tmp: Path, ollama_url: str) -> None:
+def configure_environment(tmp: Path, ollama_url: str, model: str | None) -> None:
     # Must happen before importing backend modules: settings are read at import.
     os.environ.update(
         DB_DIR=str(tmp / "db"),
@@ -66,6 +67,8 @@ def configure_environment(tmp: Path, ollama_url: str) -> None:
         LANGSMITH_TRACING="false",
         SKIP_IMAGE_CAPTIONING="true",
     )
+    if model:
+        os.environ["LLM_MODEL"] = model
     sys.path.insert(0, str(ROOT / "backend"))
 
 
@@ -110,16 +113,17 @@ async def run_case(agent, case: dict) -> dict:
             final.update(output or {})
     latency = time.perf_counter() - start
 
-    retrieved = [
-        (Path(str(d.metadata.get("source", ""))).name, d.metadata.get("page"))
-        for d in final.get("documents", [])
+    local_docs = [
+        d for d in final.get("documents", [])
         if not str(d.metadata.get("source", "")).startswith(("http://", "https://"))
     ]
+    retrieved = [(Path(str(d.metadata.get("source", ""))).name, d.metadata.get("page")) for d in local_docs]
     return {
         "route": "out_of_scope" if "block" in nodes else "answer",
         "answer": final.get("answer", ""),
         "search_query": final.get("search_query"),
         "retrieved": retrieved,
+        "retrieved_text": [d.page_content for d in local_docs],
         "nodes": nodes,
         "llm_calls": counter.calls,
         "latency_s": round(latency, 2),
@@ -143,6 +147,12 @@ def summarize(rows: list[dict]) -> dict:
         "answer_accuracy": _rate(r["score"]["answer_ok"] for r in rows),
         "route_accuracy": _rate(r["score"]["route_ok"] for r in rows),
         "retrieval_hit_rate": _rate(r["score"]["retrieval_hit"] for r in rows),
+        # Chunk level: the retrieved text contains every required fact.
+        "answer_in_context_rate": _rate(r["score"].get("context_has_answer") for r in rows),
+        # Generation quality when retrieval did its job.
+        "accuracy_when_in_context": _rate(
+            r["score"]["answer_ok"] for r in rows if r["score"].get("context_has_answer")
+        ),
         "citation_accuracy": _rate(r["score"]["citation_ok"] for r in rows),
         "hallucinated_citation_rate": _rate(r["score"]["hallucinated_citation"] for r in rows),
         # Questions the documents answer should never need the web.
@@ -159,11 +169,12 @@ def _fmt(v) -> str:
 
 
 def print_report(rows: list[dict], summary: dict, compare: dict | None) -> None:
-    print(f"\n{'case':28} {'kind':16} answer route hit  cite web  calls  secs")
+    print(f"\n{'case':28} {'kind':16} answer route hit  ctx  cite web  calls  secs")
     for r in rows:
         s, res = r["score"], r["result"]
         print(f"{r['case']['id'][:28]:28} {r['case']['kind'][:16]:16} "
               f"{_fmt(s['answer_ok']):6} {_fmt(s['route_ok']):5} {_fmt(s['retrieval_hit']):4} "
+              f"{_fmt(s.get('context_has_answer')):4} "
               f"{_fmt(s['citation_ok']):4} {_fmt(s['web_search']):4} {res['llm_calls']:5}  {res['latency_s']:5}")
     print("\nSummary")
     old = (compare or {}).get("summary", {})
@@ -194,7 +205,7 @@ def git_commit() -> str:
 
 async def main_async(args) -> None:
     tmp = Path(tempfile.mkdtemp(prefix="docuquery-eval-"))
-    configure_environment(tmp, args.ollama_url)
+    configure_environment(tmp, args.ollama_url, args.model)
     try:
         from ai.agent import load_agent
         from ai.ingestion import ingest_manual

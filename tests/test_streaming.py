@@ -1,112 +1,45 @@
 """Tests for token streaming functionality via FastAPI SSE and LangGraph astream_events."""
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from langchain_core.documents import Document
 
 
 class TestStreamingPromptStructure:
-    """Test that new prompt structure supports KV cache hits."""
+    """Prompt layout: static system prompt (KV-cache friendly), history as messages, docs in the user turn."""
 
-    @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
-    @patch("backend.ai.nodes.generation.get_llm")
-    def test_generate_static_prefix_first(self, mock_get_llm, mock_from_messages):
-        """Verify static content (system + context) comes before dynamic query."""
+    def _messages(self, query, documents, chat_history=()):
         from backend.ai.nodes.generation import generate
+        from tests.fakes import ScriptedChatModel
 
-        mock_prompt = MagicMock()
-        mock_after_llm = MagicMock()
-        mock_chain = MagicMock()
-        mock_prompt.__or__.return_value = mock_after_llm
-        mock_after_llm.__or__.return_value = mock_chain
-        mock_chain.ainvoke = AsyncMock(return_value="Test answer")
-        mock_from_messages.return_value = mock_prompt
+        llm = ScriptedChatModel()
+        state = {"query": query, "documents": documents, "chat_history": list(chat_history)}
+        with patch("backend.ai.nodes.generation.get_llm", return_value=llm):
+            asyncio.run(generate(state, config=MagicMock()))
+        return llm.calls[0]
 
-        docs = [Document(page_content="Static doc content", metadata={})]
-        state = {
-            "query": "What is X?",
-            "documents": docs,
-            "chat_history": [],
-        }
+    def test_generate_kv_cache_prefix_reuse(self):
+        """Different documents and questions -> byte-identical system prompt."""
+        first = self._messages("Query 1", [Document(page_content="Doc A", metadata={"source": "a.pdf", "page": 1})])
+        second = self._messages("Another question", [Document(page_content="Doc B", metadata={"source": "b.pdf", "page": 7})])
+        assert first[0].content == second[0].content
+        assert "Doc A" not in first[0].content and "Query 1" not in first[0].content
 
-        asyncio.run(generate(state, config=MagicMock()))
+    def test_history_is_sent_as_chat_messages(self):
+        history = [{"role": "user", "content": "What is the KX-200?"},
+                   {"role": "assistant", "content": "A conveyor controller."}]
+        messages = self._messages("Its max speed?", [], history)
 
-        # Verify ChatPromptTemplate.from_messages was called
-        assert mock_from_messages.called
-        call_args = mock_from_messages.call_args[0][0]
+        assert [m.type for m in messages] == ["system", "human", "ai", "human"]
+        assert messages[1].content == "What is the KX-200?"
+        assert "CONVERSATION MEMORY" not in "".join(m.content for m in messages)
 
-        # Expected structure: [("system", static_prefix), ("human", "{question}")]
-        assert len(call_args) == 2
-        assert call_args[0][0] == "system"
-        assert call_args[1][0] == "human"
-        assert "{question}" in call_args[1][1]
-
-        # Verify ainvoke gets only {question}, not context/memory_context
-        mock_chain.ainvoke.assert_called_once()
-        invoke_args = mock_chain.ainvoke.call_args[0][0]
-        assert invoke_args == {"question": "What is X?"}
-    @patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
-    @patch("backend.ai.nodes.generation.get_llm")
-    def test_generate_static_prefix_contains_system_and_context(
-        self, mock_get_llm, mock_from_messages
-    ):
-        """Verify static prefix contains system instructions + context + memory."""
-        from backend.ai.nodes.generation import generate
-
-        mock_prompt = MagicMock()
-        mock_after_llm = MagicMock()
-        mock_chain = MagicMock()
-        mock_prompt.__or__.return_value = mock_after_llm
-        mock_after_llm.__or__.return_value = mock_chain
-        mock_chain.ainvoke = AsyncMock(return_value="Answer")
-        mock_from_messages.return_value = mock_prompt
-
-        docs = [Document(page_content="Critical spec: 48V", metadata={})]
-        state = {
-            "query": "Voltage?",
-            "documents": docs,
-            "chat_history": [
-                {"role": "user", "content": "Previous question"},
-                {"role": "assistant", "content": "Previous answer"},
-            ],
-        }
-
-        asyncio.run(generate(state, config=MagicMock()))
-        call_args = mock_from_messages.call_args[0][0]
-        system_msg = call_args[0][1]
-
-        assert "technical assistant" in system_msg
-        assert "RETRIEVED CONTEXT:" in system_msg
-        assert "Critical spec: 48V" in system_msg
-        assert "CONVERSATION MEMORY:" in system_msg
-
-    @patch("backend.ai.nodes.generation.get_llm")
-    def test_generate_kv_cache_prefix_reuse(self, mock_get_llm):
-        """Same documents + different questions -> byte-identical system prompt."""
-        from backend.ai.nodes.generation import generate
-
-        docs = [
-            Document(page_content="Doc A content", metadata={"source": "manual1.pdf", "page": 1}),
-            Document(page_content="Doc B content", metadata={"source": "manual2.pdf", "page": 3}),
-        ]
-        prompts = []
-
-        def capture(messages):
-            prompts.append(messages)
-            chain = MagicMock()
-            chain.ainvoke = AsyncMock(return_value="answer")
-            prompt = MagicMock()
-            prompt.__or__.return_value.__or__.return_value = chain
-            return prompt
-
-        with patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages", side_effect=capture):
-            for query in ("Query 1", "A completely different question"):
-                asyncio.run(generate({"query": query, "documents": docs, "chat_history": []}, config=MagicMock()))
-
-        assert prompts[0][0][1] == prompts[1][0][1]
-        assert "Query 1" not in prompts[0][0][1]
-        assert prompts[0][1] == ("human", "{question}")
+    def test_braces_in_documents_do_not_break_generation(self):
+        """Document text used to be formatted as a prompt template: '{x}' raised KeyError."""
+        docs = [Document(page_content='config = {"speed": 2.4} and {placeholder}', metadata={"source": "a.pdf", "page": 1})]
+        messages = self._messages("What is the speed?", docs)
+        assert '{"speed": 2.4} and {placeholder}' in messages[-1].content
 
 
 class TestStreamingEndpoint:

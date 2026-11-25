@@ -46,8 +46,16 @@ def test_score_case_correct_grounded_answer():
     result = _result(answer="It needs 36 V DC [Source: q7.pdf, Page: 2]", retrieved=[("q7.pdf", 2), ("q9.pdf", 2)])
     assert score_case(case, result) == {
         "route_ok": True, "answer_ok": True, "retrieval_hit": True, "citation_ok": True,
-        "hallucinated_citation": False, "web_search": False,
+        "hallucinated_citation": False, "web_search": False, "context_has_answer": False,
     }
+
+
+def test_context_has_answer_separates_retrieval_from_generation():
+    case = {"kind": "lookup", "sources": [["q7.pdf", 2]], "must_contain": ["36v"]}
+    found = _result(answer="I don't know.", retrieved=[("q7.pdf", 2)], retrieved_text=["Input voltage: 36 V DC."])
+    missing = _result(answer="I don't know.", retrieved=[("q7.pdf", 2)], retrieved_text=["Maximum current: 14 A."])
+    assert score_case(case, found)["context_has_answer"] is True   # generation failure
+    assert score_case(case, missing)["context_has_answer"] is False  # retrieval failure
 
 
 def test_score_case_flags_citation_to_page_never_retrieved_and_web_search():

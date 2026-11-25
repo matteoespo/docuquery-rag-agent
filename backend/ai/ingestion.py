@@ -2,8 +2,10 @@ import base64
 import glob
 import hashlib
 import os
+import re
 import threading
 import time
+import unicodedata
 from pathlib import Path
 
 import pdfplumber
@@ -101,16 +103,41 @@ def table_to_markdown(table_data) -> str:
 
 
 # Phase 1: text + tables
+# Bump when extraction, chunking or embedding changes: chunks indexed with an
+# older version are treated as stale and the file is re-indexed.
+INGESTION_VERSION = 2
+
+
+def normalize_text(text: str) -> str:
+    """Clean up PDF text extraction artifacts that hurt search.
+
+    - LaTeX-style umlauts come out as a separate diaeresis ("Kl¨uck", "Klu¨ck"):
+      recombine them into "ü" (before NFKC, which would turn "¨" into a space)
+    - NFKC expands ligatures ("ﬁve" -> "five", "trafﬁc" -> "traffic")
+    - words hyphenated across line breaks are joined ("ap-\nproaches")
+    """
+    # A diaeresis belongs on a vowel: the one before it ("Klu¨ck"), else the one after ("Kl¨uck").
+    text = re.sub("([AEIOUaeiouy])\u00a8", "\\1\u0308", text)
+    text = re.sub("\u00a8\\s?([AEIOUaeiouy])", "\\1\u0308", text)
+    text = unicodedata.normalize("NFKC", text)
+    return re.sub(r"([a-z])-\n([a-z])", r"\1\2", text)
+
+
 def _extract_text_and_tables(file_path: str) -> list[Document]:
-    """Extract text and tables from a PDF. No Moondream calls."""
+    """Extract page text (PyMuPDF) and tables (pdfplumber). No Moondream calls.
+
+    PyMuPDF keeps two-column layouts in reading order and word spacing intact;
+    pdfplumber's extract_text interleaved columns and merged words
+    ("Bagschicketal.") on papers. pdfplumber is still used for tables.
+    """
     documents = []
-    with pdfplumber.open(file_path) as pdf:
-        for page_num, page in enumerate(pdf.pages):
-            page_content = page.extract_text() or ""
+    with pymupdf.open(file_path) as mu_doc, pdfplumber.open(file_path) as pdf:
+        for page_num, (mu_page, page) in enumerate(zip(mu_doc, pdf.pages)):
+            page_content = normalize_text(mu_page.get_text("text"))
 
             tables = page.extract_tables()
             for table in tables:
-                page_content += table_to_markdown(table)
+                page_content += normalize_text(table_to_markdown(table))
 
             if page_content.strip():
                 doc = Document(
@@ -168,7 +195,10 @@ def _is_already_ingested(vector_db: Chroma, source: str, file_hash: str) -> bool
     existing = vector_db._collection.get(where={"source": source}, include=["metadatas"])
     if not existing["ids"]:
         return False
-    if all((m or {}).get("file_hash") == file_hash for m in existing["metadatas"]):
+    if all(
+        (m or {}).get("file_hash") == file_hash and (m or {}).get("ingestion_version") == INGESTION_VERSION
+        for m in existing["metadatas"]
+    ):
         return True
     vector_db._collection.delete(ids=existing["ids"])
     logger.info("Removed %d stale vectors for %s", len(existing["ids"]), os.path.basename(source))
@@ -219,6 +249,7 @@ def ingest_manual(file_paths: list[str] | None = None) -> list[str]:
         chunks = _split_documents(documents)
         for chunk in chunks:
             chunk.metadata["file_hash"] = file_hash
+            chunk.metadata["ingestion_version"] = INGESTION_VERSION
 
         if chunks:
             _add_in_batches(vector_db, chunks, _chunk_ids(file_hash, chunks), label=name)
@@ -312,6 +343,7 @@ def enrich_with_images(pdf_files: list[str]):
         file_chunks = _split_documents(_extract_and_caption_images(file_path))
         for chunk in file_chunks:
             chunk.metadata["file_hash"] = file_hash
+            chunk.metadata["ingestion_version"] = INGESTION_VERSION
         chunks.extend(file_chunks)
         # img_ prefix avoids collisions with the Phase 1 text chunk IDs.
         chunk_ids.extend(_chunk_ids(f"img_{file_hash}", file_chunks))

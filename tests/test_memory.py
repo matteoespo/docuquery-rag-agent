@@ -1,69 +1,35 @@
-"""Conversation memory: summarization must not block the event loop."""
+"""Conversation memory: recent turns become real chat messages (no summarization LLM call)."""
 
-import asyncio
-import time
-from unittest.mock import patch
+from langchain_core.messages import AIMessage, HumanMessage
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage
-from langchain_core.outputs import ChatGeneration, ChatResult
-
-from backend.ai.memory import build_memory_context
-
-SLOW = 0.3
+from backend.ai.memory import format_chat_messages, history_messages
 
 
-class SlowChatModel(BaseChatModel):
-    """Takes SLOW seconds to answer: blocking in sync, awaiting in async."""
-
-    @property
-    def _llm_type(self) -> str:
-        return "slow-fake"
-
-    def _result(self) -> ChatResult:
-        return ChatResult(generations=[ChatGeneration(message=AIMessage(content=" - summary "))])
-
-    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-        time.sleep(SLOW)
-        return self._result()
-
-    async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
-        await asyncio.sleep(SLOW)
-        return self._result()
+def test_history_becomes_user_and_assistant_messages():
+    history = [
+        {"role": "user", "content": "What is the KX-200?"},
+        {"role": "assistant", "content": "A conveyor controller."},
+    ]
+    assert history_messages(history) == [
+        HumanMessage("What is the KX-200?"),
+        AIMessage("A conveyor controller."),
+    ]
 
 
-HISTORY = [
-    {"role": "user" if i % 2 == 0 else "assistant", "content": f"message {i}"}
-    for i in range(6)
-]
+def test_history_keeps_only_the_most_recent_messages():
+    history = [{"role": "user" if i % 2 == 0 else "assistant", "content": f"m{i}"} for i in range(10)]
+    assert [m.content for m in history_messages(history, limit=4)] == ["m6", "m7", "m8", "m9"]
 
 
-def test_empty_history_returns_empty_string():
-    assert asyncio.run(build_memory_context([])) == ""
+def test_history_drops_empty_and_non_chat_roles():
+    history = [
+        {"role": "system", "content": "ignore me"},
+        {"role": "user", "content": "   "},
+        {"role": "user", "content": "real question"},
+    ]
+    assert history_messages(history) == [HumanMessage("real question")]
 
 
-@patch("backend.ai.memory.get_llm", return_value=SlowChatModel())
-def test_summarization_does_not_block_event_loop(_):
-    async def scenario():
-        ticks = 0
-        done = asyncio.Event()
-
-        async def ticker():
-            nonlocal ticks
-            while not done.is_set():
-                ticks += 1
-                await asyncio.sleep(0.01)
-
-        task = asyncio.create_task(ticker())
-        result = await build_memory_context(HISTORY)
-        done.set()
-        await task
-        return result, ticks
-
-    result, ticks = asyncio.run(scenario())
-
-    # A blocking call would freeze the ticker for the whole SLOW window.
-    assert ticks >= 10
-    assert "Older conversation summary:\n- summary" in result
-    assert "assistant: message 5" in result
-    assert "message 0" not in result.split("Most recent")[1]
+def test_format_chat_messages_transcript():
+    history = [{"role": "user", "content": " hi "}, {"role": "assistant", "content": ""}]
+    assert format_chat_messages(history) == "user: hi"

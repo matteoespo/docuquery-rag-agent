@@ -1,27 +1,29 @@
 {
   "dataset": "synthetic",
-  "model": "llama3.2:3b",
+  "model": "phi4-mini:latest",
   "embedding_model": "nomic-embed-text",
-  "retrieval_k": 3,
-  "commit": "1ec0737",
+  "retrieval_k": 5,
+  "commit": "de22a18",
   "summary": {
     "cases": 24,
-    "answer_accuracy": 0.875,
-    "route_accuracy": 0.958,
-    "retrieval_hit_rate": 0.9,
-    "citation_accuracy": 0.8,
+    "answer_accuracy": 0.958,
+    "route_accuracy": 1.0,
+    "retrieval_hit_rate": 1.0,
+    "answer_in_context_rate": 1.0,
+    "accuracy_when_in_context": 0.95,
+    "citation_accuracy": 0.9,
     "hallucinated_citation_rate": 0.0,
-    "web_search_rate_answerable": 0.6,
-    "avg_llm_calls": 4.08,
-    "median_latency_s": 13.98,
-    "p90_latency_s": 17.87,
+    "web_search_rate_answerable": 0.05,
+    "avg_llm_calls": 2.04,
+    "median_latency_s": 10.05,
+    "p90_latency_s": 11.54,
     "answer_accuracy_by_kind": {
       "compare": 1.0,
-      "distractor": 1.0,
-      "followup": 0.667,
-      "lookup": 0.875,
+      "distractor": 0.75,
+      "followup": 1.0,
+      "lookup": 1.0,
       "out_of_scope": 1.0,
-      "troubleshooting": 0.667,
+      "troubleshooting": 1.0,
       "unanswerable": 1.0
     }
   },
@@ -43,32 +45,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the Zorvex Q7 pump requires an input voltage of 36 V DC. [Source: zorvex_q7_manual.pdf, Page: 2]",
+        "answer": "The Zorvex Q7 hydraulic pump needs an input of 36 V DC [Source: zorvex_q7_manual.pdf, Page: 2].",
         "search_query": "What input voltage does the Zorvex Q7 pump need?",
         "retrieved": [
-          [
-            "zorvex_q7_manual.pdf",
-            2
-          ],
           [
             "zorvex_q9_manual.pdf",
             2
           ],
           [
             "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q7_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
           ]
+        ],
+        "retrieved_text": [
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
-          "generate",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 5,
-        "latency_s": 17.5
+        "llm_calls": 2,
+        "latency_s": 12.33
       },
       "score": {
         "route_ok": true,
@@ -76,7 +90,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -96,30 +111,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the Zorvex Q7 must be grounded via terminal G3. [Source: zorvex_q7_manual.pdf, Page: 2]",
+        "answer": "[Source: zorvex_q7_manual.pdf, Page: 2] The pump must be grounded via terminal G3.",
         "search_query": "Which terminal is used to ground the Zorvex Q7?",
         "retrieved": [
-          [
-            "zorvex_q7_manual.pdf",
-            2
-          ],
           [
             "zorvex_q9_manual.pdf",
             2
           ],
           [
+            "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
             "kestrel_kx200_manual.pdf",
             3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
           ]
+        ],
+        "retrieved_text": [
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 11.66
+        "llm_calls": 2,
+        "latency_s": 9.6
       },
       "score": {
         "route_ok": true,
@@ -127,7 +156,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -150,32 +180,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, [Source: zorvex_q7_manual.pdf, Page: 3], the recommended hydraulic oil for the Zorvex Q7 is HV-46.",
+        "answer": "Use only HV-46 hydraulic oil [Source: zorvex_q7_manual.pdf, Page: 3].",
         "search_query": "Which hydraulic oil should be used in the Zorvex Q7?",
         "retrieved": [
-          [
-            "zorvex_q9_manual.pdf",
-            3
-          ],
           [
             "zorvex_q7_manual.pdf",
             3
           ],
           [
             "zorvex_q9_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
           ]
+        ],
+        "retrieved_text": [
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil.",
+          "Section 3: Maintenance\nReplace the Zorvex Q9 filter cartridge (part ZF-310) every 600 operating hours.\nChange the hydraulic oil every 1500 operating hours.\nUse only HV-68 hydraulic oil.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
-          "generate",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 5,
-        "latency_s": 16.85
+        "llm_calls": 2,
+        "latency_s": 9.53
       },
       "score": {
         "route_ok": true,
@@ -183,7 +225,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -203,30 +246,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the technical manual, [Source: zorvex_q7_manual.pdf, Page: 1], the maximum flow rate of the Zorvex Q7 Hydraulic Pump is 42 litres per minute.",
+        "answer": "The maximum flow rate of the Zorvex Q7 hydraulic pump is 42 litres per minute [Source: zorvex_q7_manual.pdf, Page: 1].",
         "search_query": "What is the maximum flow rate of the Zorvex Q7?",
         "retrieved": [
-          [
-            "zorvex_q9_manual.pdf",
-            1
-          ],
           [
             "zorvex_q7_manual.pdf",
             1
           ],
           [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
             "kestrel_kx200_manual.pdf",
             2
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            2
           ]
+        ],
+        "retrieved_text": [
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Section 2: Configuration\nMaximum belt speed: 2.4 metres per second.\nThe default acceleration ramp is 3 seconds.\nThe emergency stop must be wired as a normally closed (NC) contact on terminal X5.",
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 13.38
+        "llm_calls": 2,
+        "latency_s": 10.01
       },
       "score": {
         "route_ok": true,
@@ -234,7 +291,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -254,40 +312,53 @@
       },
       "result": {
         "route": "answer",
-        "answer": "I don't have information on the maximum current draw of the Zorvex Q9 from our previous conversation. However, according to the manual [Source: zorvex_q7_manual.pdf, Page: 2], the maximum current draw for a different model (Zorvex Q7) is 14 A.\n\nFor the Zorvex Q9, I found that the manual [Source: zorvex_q9_manual.pdf, Page: 1] states it's not specified in the provided section.",
+        "answer": "[Source: zorvex_q9_manual.pdf, Page: 2]\nThe maximum current draw for the Zorvex Q9 hydraulic pump is 22 A.",
         "search_query": "What is the maximum current draw of the Zorvex Q9?",
         "retrieved": [
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
           [
             "zorvex_q7_manual.pdf",
             2
           ],
           [
             "zorvex_q9_manual.pdf",
-            2
+            1
           ],
           [
-            "zorvex_q9_manual.pdf",
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
             1
           ]
+        ],
+        "retrieved_text": [
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
-          "generate",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 5,
-        "latency_s": 20.11
+        "llm_calls": 2,
+        "latency_s": 9.99
       },
       "score": {
         "route_ok": true,
-        "answer_ok": false,
+        "answer_ok": true,
         "retrieval_hit": true,
-        "citation_ok": false,
+        "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -307,29 +378,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the Kestrel KX-200 manual, [Source: kestrel_kx200_manual.pdf, Page: 2], the maximum belt speed of the Kestrel KX-200 conveyor controller is 2.4 metres per second.",
+        "answer": "The maximum belt speed of the Kestrel KX-200 is 2.4 metres per second [Source: kestrel_kx200_manual.pdf, Page: 2].",
         "search_query": "What is the maximum belt speed of the Kestrel KX-200?",
         "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
           [
             "kestrel_kx200_manual.pdf",
             2
           ],
           [
-            "kestrel_kx200_manual.pdf",
+            "zorvex_q7_manual.pdf",
             1
           ],
           [
             "zorvex_q9_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
           ]
+        ],
+        "retrieved_text": [
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Section 2: Configuration\nMaximum belt speed: 2.4 metres per second.\nThe default acceleration ramp is 3 seconds.\nThe emergency stop must be wired as a normally closed (NC) contact on terminal X5.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 13.37
+        "llm_calls": 2,
+        "latency_s": 10.13
       },
       "score": {
         "route_ok": true,
@@ -337,7 +423,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -358,7 +445,7 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the user manual, the operating temperature range for the Kestrel KX-200 Conveyor Controller is -10 to 50 degrees Celsius. [Source: kestrel_kx200_manual.pdf, Page: 1]",
+        "answer": "The operating temperature range of the Kestrel KX-200 controller is -10 to 50 degrees Celsius [Source: kestrel_kx200_manual.pdf, Page: 1].",
         "search_query": "What is the operating temperature range of the Kestrel KX-200 controller?",
         "retrieved": [
           [
@@ -367,20 +454,35 @@
           ],
           [
             "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
+            "zorvex_q9_manual.pdf",
             2
           ],
           [
             "zorvex_q7_manual.pdf",
-            4
+            2
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            3
           ]
+        ],
+        "retrieved_text": [
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 14.62
+        "llm_calls": 2,
+        "latency_s": 10.13
       },
       "score": {
         "route_ok": true,
@@ -388,7 +490,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -413,7 +516,7 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the emergency stop must be wired as a normally closed (NC) contact on terminal X5. [Source: kestrel_kx200_manual.pdf, Page: 2]",
+        "answer": "The emergency stop should be wired as a normally closed (NC) contact on terminal X5 [Source: kestrel_kx200_manual.pdf, Page: 2].",
         "search_query": "How must the emergency stop be wired on the Kestrel KX-200?",
         "retrieved": [
           [
@@ -425,18 +528,32 @@
             1
           ],
           [
+            "kestrel_kx200_manual.pdf",
+            3
+          ],
+          [
             "zorvex_q7_manual.pdf",
             2
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
           ]
+        ],
+        "retrieved_text": [
+          "Section 2: Configuration\nMaximum belt speed: 2.4 metres per second.\nThe default acceleration ramp is 3 seconds.\nThe emergency stop must be wired as a normally closed (NC) contact on terminal X5.",
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 12.5
+        "llm_calls": 2,
+        "latency_s": 9.95
       },
       "score": {
         "route_ok": true,
@@ -444,7 +561,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -467,38 +585,53 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the part number of the Zorvex Q9 filter cartridge is ZF-310. [Source: zorvex_q9_manual.pdf, Page: 3]",
+        "answer": "The part number of the Zorvex Q9 filter cartridge is not provided in any of these documents. [Source: zorvex_q9_manual.pdf, Page: 3]; [Source: zorvex_q7_manual.pdf, Page: 1] and [Source: zorvex_q7_manual.pdf, Page: 4].",
         "search_query": "What is the part number of the Zorvex Q9 filter cartridge?",
         "retrieved": [
-          [
-            "zorvex_q7_manual.pdf",
-            3
-          ],
           [
             "zorvex_q9_manual.pdf",
             3
           ],
           [
             "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
             1
           ]
+        ],
+        "retrieved_text": [
+          "Section 3: Maintenance\nReplace the Zorvex Q9 filter cartridge (part ZF-310) every 600 operating hours.\nChange the hydraulic oil every 1500 operating hours.\nUse only HV-68 hydraulic oil.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 13.45
+        "llm_calls": 2,
+        "latency_s": 11.47
       },
       "score": {
         "route_ok": true,
-        "answer_ok": true,
+        "answer_ok": false,
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -521,7 +654,7 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, I don't have specific information on the replacement frequency for the Zorvex Q9 filter. However, I can tell you that the manual does provide guidance on replacing other components, such as the filter cartridge (part ZF-310) in the Zorvex Q9, which should be replaced every 600 operating hours.\n\n[Source: zorvex_q9_manual.pdf, Page: 3]\n\nIf you're looking for information on the replacement frequency for a specific component, I recommend consulting the relevant manual or contacting the manufacturer directly.",
+        "answer": "Replace the Zorvex Q9 filter cartridge (part ZF-310) every 600 operating hours [Source: zorvex_q9_manual.pdf, Page: 3].",
         "search_query": "How often should the Zorvex Q9 filter be replaced?",
         "retrieved": [
           [
@@ -533,18 +666,32 @@
             3
           ],
           [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
             "zorvex_q9_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
           ]
+        ],
+        "retrieved_text": [
+          "Section 3: Maintenance\nReplace the Zorvex Q9 filter cartridge (part ZF-310) every 600 operating hours.\nChange the hydraulic oil every 1500 operating hours.\nUse only HV-68 hydraulic oil.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 15.05
+        "llm_calls": 2,
+        "latency_s": 10.1
       },
       "score": {
         "route_ok": true,
@@ -552,7 +699,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -575,7 +723,7 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the filter cartridge (part ZF-220) for the Zorvex Q7 should be replaced every 400 operating hours. [Source: zorvex_q7_manual.pdf, Page: 3]",
+        "answer": "The filter cartridge (part ZF-220) for the Zorvex Q7 hydraulic pump needs to be replaced every 400 operating hours [Source: zorvex_q7_manual.pdf, Page: 3].",
         "search_query": "How often should the filter of the Zorvex Q7 be replaced?",
         "retrieved": [
           [
@@ -589,16 +737,30 @@
           [
             "zorvex_q9_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
           ]
+        ],
+        "retrieved_text": [
+          "Section 3: Maintenance\nReplace the Zorvex Q9 filter cartridge (part ZF-310) every 600 operating hours.\nChange the hydraulic oil every 1500 operating hours.\nUse only HV-68 hydraulic oil.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 12.9
+        "llm_calls": 2,
+        "latency_s": 10.43
       },
       "score": {
         "route_ok": true,
@@ -606,7 +768,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -629,32 +792,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the Zorvex Q9 requires an input voltage of 48 V DC. [Source: zorvex_q9_manual.pdf, Page: 2]",
+        "answer": "[Source: zorvex_q9_manual.pdf, Page: 2] The Zorvex Q9 requires an input voltage of 48 V DC.",
         "search_query": "What input voltage does the Zorvex Q9 require?",
         "retrieved": [
-          [
-            "zorvex_q7_manual.pdf",
-            2
-          ],
           [
             "zorvex_q9_manual.pdf",
             2
           ],
           [
             "zorvex_q7_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
             1
           ]
+        ],
+        "retrieved_text": [
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
-          "generate",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 5,
-        "latency_s": 16.49
+        "llm_calls": 2,
+        "latency_s": 9.86
       },
       "score": {
         "route_ok": true,
@@ -662,7 +837,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -683,7 +859,7 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, error code E3 indicates \"Overpressure\" (Source: zorvex_q7_manual.pdf, Page: 4). To resolve this issue, you should inspect the relief valve RV-2 (Source: zorvex_q7_manual.pdf, Page: 4).",
+        "answer": "Error code E3 indicates overpressure. You need to inspect relief valve RV-2 [Source: zorvex_q7_manual.pdf, Page: 4].",
         "search_query": "What does error code E3 mean on the Zorvex Q7 and what should I do?",
         "retrieved": [
           [
@@ -695,25 +871,42 @@
             4
           ],
           [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
             "zorvex_q7_manual.pdf",
             2
           ]
         ],
+        "retrieved_text": [
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3."
+        ],
         "nodes": [
           "contextualize",
           "retrieve",
+          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 13.9
+        "llm_calls": 2,
+        "latency_s": 9.95
       },
       "score": {
         "route_ok": true,
         "answer_ok": true,
         "retrieval_hit": true,
-        "citation_ok": false,
+        "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": true,
+        "context_has_answer": true
       }
     },
     {
@@ -733,37 +926,53 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, for error code E4 - Sensor fault, you should check the pressure sensor cable on connector J7 [Source: zorvex_q7_manual.pdf, Page: 4].",
+        "answer": "You should check the pressure sensor cable on connector J7 [Source: zorvex_q7_manual.pdf, Page: 2].",
         "search_query": "The Zorvex Q7 shows error E4. Which connector should I check?",
         "retrieved": [
           [
+            "kestrel_kx200_manual.pdf",
+            3
+          ],
+          [
             "zorvex_q7_manual.pdf",
             4
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
           ],
           [
             "zorvex_q7_manual.pdf",
             2
           ],
           [
-            "kestrel_kx200_manual.pdf",
-            3
+            "zorvex_q9_manual.pdf",
+            1
           ]
+        ],
+        "retrieved_text": [
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 12.61
+        "llm_calls": 2,
+        "latency_s": 9.76
       },
       "score": {
         "route_ok": true,
         "answer_ok": true,
         "retrieval_hit": true,
-        "citation_ok": true,
+        "citation_ok": false,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -782,24 +991,54 @@
         ]
       },
       "result": {
-        "route": "out_of_scope",
-        "answer": "I'm a technical assistant specialized in documentation and manuals. I can answer questions based on the uploaded documents. Please ask me something related to your technical documentation!",
+        "route": "answer",
+        "answer": "You need to hold the MODE button for 10 seconds during a firmware update of the Kestrel KX-200 [Source: kestrel_kx200_manual.pdf, Page: 3].",
         "search_query": "How long do I have to hold the MODE button to update the Kestrel KX-200 firmware?",
-        "retrieved": [],
+        "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            3
+          ],
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            2
+          ]
+        ],
+        "retrieved_text": [
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.",
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3."
+        ],
         "nodes": [
           "contextualize",
-          "block"
+          "retrieve",
+          "generate"
         ],
-        "llm_calls": 1,
-        "latency_s": 1.34
+        "llm_calls": 2,
+        "latency_s": 10.25
       },
       "score": {
-        "route_ok": false,
-        "answer_ok": false,
-        "retrieval_hit": false,
-        "citation_ok": false,
+        "route_ok": true,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -823,29 +1062,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the retrieved context, [Source: zorvex_q7_manual.pdf, Page: 2] states that the maximum current draw for the Zorvex Q7 is 14 A, and it requires a grounding via terminal G3. \n\nOn the other hand, [Source: zorvex_q9_manual.pdf, Page: 1] does not explicitly state the input voltage for the Zorvex Q9, but [Source: zorvex_q9_manual.pdf, Page: 2] states that it requires a grounding via terminal G5 and has a maximum current draw of 22 A.\n\nHowever, since we know the maximum current draw for both pumps, we can infer that the Zorvex Q7 needs a lower input voltage. \n\nUnfortunately, I don't have enough information to determine which pump needs a higher input voltage based on the provided context.",
+        "answer": "The Zorvex Q9 requires a higher input voltage [Source: zorvex_q9_manual.pdf, Page: 2; Source: zorvex_q7_manual.pdf, Page: 1].",
         "search_query": "Which pump needs a higher input voltage, the Zorvex Q7 or the Zorvex Q9?",
         "retrieved": [
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
           [
             "zorvex_q7_manual.pdf",
             2
           ],
           [
-            "zorvex_q9_manual.pdf",
-            2
+            "zorvex_q7_manual.pdf",
+            1
           ],
           [
             "zorvex_q9_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
           ]
+        ],
+        "retrieved_text": [
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 16.3
+        "llm_calls": 2,
+        "latency_s": 10.31
       },
       "score": {
         "route_ok": true,
@@ -853,7 +1107,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -878,9 +1133,13 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manuals, the Zorvex Q7 requires hydraulic oil changes every 1200 operating hours, while the Zorvex Q9 requires hydraulic oil changes every 1500 operating hours.\n\n[Source: zorvex_q7_manual.pdf, Page: 3]\n[Source: zorvex_q9_manual.pdf, Page: 3]\n\nThe Zorvex Q7 has a shorter oil change interval of 300 hours compared to the Zorvex Q9.",
+        "answer": "The Zorvex Q7 requires changing its hydraulic oil every 1200 operating hours, while for the Zorvex Q9 it is necessary to do so after 1500 operating hours [Source: zorvex_q7_manual.pdf, Page: 3; Source: zorvex_q9_manual.pdf, Page: 3].",
         "search_query": "Compare the oil change intervals of the Zorvex Q7 and the Zorvex Q9.",
         "retrieved": [
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
           [
             "zorvex_q7_manual.pdf",
             3
@@ -890,20 +1149,28 @@
             3
           ],
           [
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
             "zorvex_q7_manual.pdf",
-            4
+            1
           ]
+        ],
+        "retrieved_text": [
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil.",
+          "Section 3: Maintenance\nReplace the Zorvex Q9 filter cartridge (part ZF-310) every 600 operating hours.\nChange the hydraulic oil every 1500 operating hours.\nUse only HV-68 hydraulic oil.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
-          "generate",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 5,
-        "latency_s": 20.87
+        "llm_calls": 2,
+        "latency_s": 11.53
       },
       "score": {
         "route_ok": true,
@@ -911,7 +1178,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -941,29 +1209,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the maximum belt speed of the Kestrel KX-200 Conveyor Controller is 2.4 metres per second [Source: kestrel_kx200_manual.pdf, Page: 2].",
-        "search_query": "What is the maximum belt speed of a Kestrel KX-200?",
+        "answer": "The Kestrel KX-200's maximum belt speed is 2.4 metres per second [Source: kestrel_kx200_manual.pdf, Page: 2].",
+        "search_query": "What is the maximum belt speed of the Kestrel KX-200?",
         "retrieved": [
+          [
+            "kestrel_kx200_manual.pdf",
+            1
+          ],
           [
             "kestrel_kx200_manual.pdf",
             2
           ],
           [
-            "kestrel_kx200_manual.pdf",
+            "zorvex_q7_manual.pdf",
             1
           ],
           [
             "zorvex_q9_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
           ]
+        ],
+        "retrieved_text": [
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Section 2: Configuration\nMaximum belt speed: 2.4 metres per second.\nThe default acceleration ramp is 3 seconds.\nThe emergency stop must be wired as a normally closed (NC) contact on terminal X5.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
           "generate"
         ],
-        "llm_calls": 5,
-        "latency_s": 14.21
+        "llm_calls": 3,
+        "latency_s": 11.83
       },
       "score": {
         "route_ok": true,
@@ -971,7 +1254,8 @@
         "retrieval_hit": true,
         "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -1001,8 +1285,8 @@
       },
       "result": {
         "route": "answer",
-        "answer": "To update the firmware of your Kestrel KX-200 Conveyor Controller, follow these steps:\n\n1. Copy the firmware file KX200.bin to a FAT32 USB drive (Source: [Source: kestrel_kx200_manual.pdf, Page: 3]).\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.\n\nPlease note that you should refer to the user manual for any specific instructions or precautions related to firmware updates (Source: [Source: kestrel_kx200_manual.pdf, Page: 3]).",
-        "search_query": "How can I update the firmware of a controller designed for belt conveyors with up to four motors?",
+        "answer": "To update the Kestrel KX-200's firmware, follow these steps:\n\n1. Copy the file named \"KX200.bin\" to a USB drive formatted with FAT32.\n\n2. Insert this USB drive into the service port of your Kestrel KX-200 controller.\n\n3. Press and hold down the MODE button for 10 seconds until you see that the status LED starts blinking green, indicating it is ready for an update.\n\n4. Do not turn off or disconnect power to the controller while updating; wait until the LED remains solid green before proceeding with any further actions.",
+        "search_query": "How can one perform an upgrade on the software of the Kestrel KX-200's system?",
         "retrieved": [
           [
             "kestrel_kx200_manual.pdf",
@@ -1013,25 +1297,41 @@
             3
           ],
           [
-            "kestrel_kx200_manual.pdf",
+            "zorvex_q9_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
             2
           ]
+        ],
+        "retrieved_text": [
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
           "generate"
         ],
-        "llm_calls": 5,
-        "latency_s": 17.87
+        "llm_calls": 3,
+        "latency_s": 15.73
       },
       "score": {
         "route_ok": true,
         "answer_ok": true,
         "retrieval_hit": true,
-        "citation_ok": true,
+        "citation_ok": false,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -1064,12 +1364,20 @@
       },
       "result": {
         "route": "answer",
-        "answer": "According to the manual, the Zorvex Q7 (and by extension, I assume, the Q9 as well) uses HV-46 hydraulic oil. [Source: zorvex_q7_manual.pdf, Page: 3]",
-        "search_query": "What type of oil does the Zorvex Q9 pump use?",
+        "answer": "The Zorvex Q9 uses HV-68 hydraulic oil [Source: zorvex_q9_manual.pdf, Page: 3].",
+        "search_query": "What type of oil uses the Zorvex Q9?",
         "retrieved": [
           [
             "zorvex_q7_manual.pdf",
             4
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            3
           ],
           [
             "zorvex_q9_manual.pdf",
@@ -1077,28 +1385,32 @@
           ],
           [
             "zorvex_q7_manual.pdf",
-            3
+            1
           ]
+        ],
+        "retrieved_text": [
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil.",
+          "Section 3: Maintenance\nReplace the Zorvex Q9 filter cartridge (part ZF-310) every 600 operating hours.\nChange the hydraulic oil every 1500 operating hours.\nUse only HV-68 hydraulic oil.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "generate",
-          "websearch",
-          "generate",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 8,
-        "latency_s": 23.77
+        "llm_calls": 3,
+        "latency_s": 11.54
       },
       "score": {
         "route_ok": true,
-        "answer_ok": false,
-        "retrieval_hit": false,
-        "citation_ok": false,
+        "answer_ok": true,
+        "retrieval_hit": true,
+        "citation_ok": true,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": true
       }
     },
     {
@@ -1110,30 +1422,44 @@
       },
       "result": {
         "route": "answer",
-        "answer": "I don't have information on the warranty period of the Zorvex Q7 from the retrieved context. However, I can suggest checking the manual or contacting the manufacturer directly for more information.\n\n[Source: zorvex_q7_manual.pdf, Page: Not Available]\n\nIf you need further assistance, please let me know and I'll be happy to help.",
+        "answer": "The documents provided do not contain information about the warranty period for the Zorvex Q7.",
         "search_query": "What is the warranty period of the Zorvex Q7?",
         "retrieved": [
           [
-            "zorvex_q7_manual.pdf",
-            3
-          ],
-          [
-            "zorvex_q9_manual.pdf",
+            "kestrel_kx200_manual.pdf",
             3
           ],
           [
             "zorvex_q9_manual.pdf",
             1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            4
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q7_manual.pdf",
+            3
           ]
+        ],
+        "retrieved_text": [
+          "Section 3: Firmware Update\n1. Copy the firmware file KX200.bin to a FAT32 USB drive.\n2. Insert the drive into the service port.\n3. Hold the MODE button for 10 seconds until the status LED blinks green.\n4. Do not power off the controller until the LED stays solid green.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Section 4: Troubleshooting - Error Codes\nE1 - Low oil level - Top up with HV-46 oil.\nE2 - Motor overheating - Let the pump cool down for 30 minutes.\nE3 - Overpressure - Inspect relief valve RV-2.\nE4 - Sensor fault - Check the pressure sensor cable on connector J7.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Section 3: Maintenance\nReplace the Zorvex Q7 filter cartridge (part ZF-220) every 400 operating hours.\nChange the hydraulic oil every 1200 operating hours.\nUse only HV-46 hydraulic oil."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 13.66
+        "llm_calls": 2,
+        "latency_s": 9.55
       },
       "score": {
         "route_ok": true,
@@ -1141,7 +1467,8 @@
         "retrieval_hit": null,
         "citation_ok": null,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": null
       }
     },
     {
@@ -1153,7 +1480,7 @@
       },
       "result": {
         "route": "answer",
-        "answer": "I don't have information on the pricing of the Kestrel KX-200 Conveyor Controller from our previous conversation. The manual I was provided with only covers the basics of the product, such as its operating temperature range and electrical specifications.\n\nHowever, I can suggest that you contact the manufacturer or a authorized distributor for more detailed information on pricing and availability.",
+        "answer": "The documents do not contain information about the price of the Kestrel KX-200.",
         "search_query": "How much does the Kestrel KX-200 cost?",
         "retrieved": [
           [
@@ -1166,17 +1493,31 @@
           ],
           [
             "zorvex_q7_manual.pdf",
+            1
+          ],
+          [
+            "zorvex_q9_manual.pdf",
+            2
+          ],
+          [
+            "zorvex_q7_manual.pdf",
             2
           ]
+        ],
+        "retrieved_text": [
+          "Kestrel KX-200 Conveyor Controller - User Manual\nSection 1: Overview\nThe Kestrel KX-200 controls belt conveyors with up to four motors.\nOperating temperature range: -10 to 50 degrees Celsius.",
+          "Zorvex Q9 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q9 is a heavy-duty hydraulic pump for construction machinery.\nIt delivers a maximum flow rate of 75 litres per minute.",
+          "Zorvex Q7 Hydraulic Pump - Technical Manual\nSection 1: Overview\nThe Zorvex Q7 is a compact hydraulic pump for agricultural machinery.\nIt delivers a maximum flow rate of 42 litres per minute.",
+          "Section 2: Electrical Specifications\nInput voltage: 48 V DC.\nMaximum current draw: 22 A.\nThe pump must be grounded via terminal G5.",
+          "Section 2: Electrical Specifications\nInput voltage: 36 V DC.\nMaximum current draw: 14 A.\nThe pump must be grounded via terminal G3."
         ],
         "nodes": [
           "contextualize",
           "retrieve",
-          "websearch",
           "generate"
         ],
-        "llm_calls": 4,
-        "latency_s": 14.07
+        "llm_calls": 2,
+        "latency_s": 9.31
       },
       "score": {
         "route_ok": true,
@@ -1184,7 +1525,8 @@
         "retrieval_hit": null,
         "citation_ok": null,
         "hallucinated_citation": false,
-        "web_search": true
+        "web_search": false,
+        "context_has_answer": null
       }
     },
     {
@@ -1199,12 +1541,13 @@
         "answer": "I'm a technical assistant specialized in documentation and manuals. I can answer questions based on the uploaded documents. Please ask me something related to your technical documentation!",
         "search_query": "hi, how are you?",
         "retrieved": [],
+        "retrieved_text": [],
         "nodes": [
           "contextualize",
           "block"
         ],
         "llm_calls": 1,
-        "latency_s": 1.34
+        "latency_s": 1.69
       },
       "score": {
         "route_ok": true,
@@ -1212,7 +1555,8 @@
         "retrieval_hit": null,
         "citation_ok": null,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": null
       }
     },
     {
@@ -1227,12 +1571,13 @@
         "answer": "I'm a technical assistant specialized in documentation and manuals. I can answer questions based on the uploaded documents. Please ask me something related to your technical documentation!",
         "search_query": "Write a short poem about cats.",
         "retrieved": [],
+        "retrieved_text": [],
         "nodes": [
           "contextualize",
           "block"
         ],
         "llm_calls": 1,
-        "latency_s": 0.3
+        "latency_s": 0.8
       },
       "score": {
         "route_ok": true,
@@ -1240,7 +1585,8 @@
         "retrieval_hit": null,
         "citation_ok": null,
         "hallucinated_citation": false,
-        "web_search": false
+        "web_search": false,
+        "context_has_answer": null
       }
     }
   ]

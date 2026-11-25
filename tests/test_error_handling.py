@@ -1,14 +1,15 @@
-"""Failures surface as errors instead of being hidden: delete order, router, chat stream."""
+"""Failures surface as errors instead of being hidden: delete order, chat stream.
+
+Router error handling is tested in test_router_node.py.
+"""
 
 import asyncio
 import json
-from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.ai.nodes.routing import router
 from backend.api.routers import generate_tokens
 
 # Delete endpoint
@@ -47,34 +48,6 @@ def test_delete_removes_vectors_then_file(delete_client, monkeypatch):
     assert resp.json()["vectors_deleted"] == 7
     assert calls == [(str(pdf), True)]  # vectors deleted while the file still existed
     assert not pdf.exists()
-
-
-# Router
-
-def _router_with_llm_reply(reply=None, error=None):
-    chain = MagicMock()
-    if error:
-        chain.invoke.side_effect = error
-    else:
-        chain.invoke.return_value = reply
-    prompt = MagicMock()
-    prompt.__or__.return_value.__or__.return_value = chain
-    with patch("backend.ai.nodes.routing.ChatPromptTemplate.from_messages", return_value=prompt), \
-         patch("backend.ai.nodes.routing.get_llm"):
-        return router({"query": "How do I calibrate the sensor?"})
-
-
-def test_router_unrecognized_output_tries_to_answer():
-    assert _router_with_llm_reply("I think this is about sensors.") == "vector_store"
-
-
-def test_router_still_blocks_out_of_scope():
-    assert _router_with_llm_reply("out_of_scope") == "out_of_scope"
-
-
-def test_router_llm_failure_is_not_disguised_as_out_of_scope():
-    with pytest.raises(ConnectionError):
-        _router_with_llm_reply(error=ConnectionError("ollama unreachable"))
 
 
 # Chat stream

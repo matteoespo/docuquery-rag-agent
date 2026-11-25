@@ -22,6 +22,8 @@ SYSTEM_PROMPT = (
     "Given a conversation and a follow-up question, rewrite the follow-up into a "
     "standalone question that can be understood without the conversation. "
     "Replace pronouns and references (it, that, the second one...) with what they refer to. "
+    "Keep the user's own words and technical terms (e.g. firmware, oil, filter, error code) and "
+    "product names exactly; don't replace them with synonyms. "
     "If the question is already standalone, return it unchanged. "
     "Do NOT answer the question. Output ONLY the rewritten question."
 )

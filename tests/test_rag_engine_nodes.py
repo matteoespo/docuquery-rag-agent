@@ -1,89 +1,68 @@
-"""Unit tests for RAG graph nodes that avoid real vector DB or Ollama where possible."""
+"""Graph nodes without a real vector DB or Ollama."""
+
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from langchain_core.documents import Document
 
 from backend.ai.nodes.generation import generate
-from backend.ai.nodes.retrieval import check_if_more_info_needed
+from backend.ai.nodes.retrieval import check_if_more_info_needed, retrieve
 from backend.ai.nodes.routing import out_of_scope_node
+from tests.fakes import ScriptedChatModel
+
+
+def doc(text="Torque is 45 Nm.", relevance=0.6, source="data/pdfs/manual.pdf", page=1):
+    return Document(page_content=text, metadata={"source": source, "page": page, "relevance": relevance})
 
 
 def test_out_of_scope_node_message():
     result = out_of_scope_node({"query": "any"})
-    assert "answer" in result
     assert "technical assistant" in result["answer"].lower()
-    assert "manual" in result["answer"].lower()
 
 
-def test_check_if_more_info_needed_no_documents():
-    state = {"query": "What is the torque spec?", "documents": []}
-    assert check_if_more_info_needed(state) == "more_info_needed"
+# Relevance gate
+
+def test_no_documents_needs_more_info():
+    assert check_if_more_info_needed({"query": "q", "documents": []}) == "more_info_needed"
 
 
-@patch("backend.ai.nodes.retrieval.ChatPromptTemplate.from_messages")
-@patch("backend.ai.nodes.retrieval.get_llm")
-def test_check_if_more_info_needed_with_docs_routes_vector_store(mock_get_llm, mock_from_messages):
-    # Build the mock chain: from_messages() -> | llm -> | StrOutputParser -> .invoke()
-    mock_after_llm = MagicMock()
-    mock_chain = MagicMock()
-    mock_chain.invoke.return_value = 'vector_store'
-    mock_after_llm.__or__.return_value = mock_chain  # | StrOutputParser()
+def test_relevant_documents_are_used_without_an_llm_call(monkeypatch):
+    import backend.ai.nodes.retrieval as retrieval
 
-    mock_prompt = MagicMock()
-    mock_prompt.__or__.return_value = mock_after_llm  # | llm
-    mock_from_messages.return_value = mock_prompt
-
-    docs = [Document(page_content="Torque is 45 Nm for bolt M8.", metadata={})]
-    state = {"query": "What is the torque?", "documents": docs}
-    assert check_if_more_info_needed(state) == "vector_store"
+    monkeypatch.setattr(retrieval.settings, "min_relevance", 0.33)
+    docs = [doc(relevance=0.2), doc(relevance=0.55)]
+    assert check_if_more_info_needed({"query": "q", "documents": docs}) == "vector_store"
 
 
-@patch("backend.ai.nodes.retrieval.ChatPromptTemplate.from_messages")
-@patch("backend.ai.nodes.retrieval.get_llm")
-def test_check_if_more_info_needed_with_docs_routes_more_info(mock_get_llm, mock_from_messages):
-    # Build the mock chain: from_messages() -> | llm -> | StrOutputParser -> .invoke()
-    mock_after_llm = MagicMock()
-    mock_chain = MagicMock()
-    mock_chain.invoke.return_value = 'more_info_needed'
-    mock_after_llm.__or__.return_value = mock_chain  # | StrOutputParser()
+def test_irrelevant_documents_fall_back_to_web(monkeypatch):
+    import backend.ai.nodes.retrieval as retrieval
 
-    mock_prompt = MagicMock()
-    mock_prompt.__or__.return_value = mock_after_llm  # | llm
-    mock_from_messages.return_value = mock_prompt
-
-    docs = [Document(page_content="Unrelated boilerplate text.", metadata={})]
-    state = {"query": "What is the firmware version?", "documents": docs}
-    assert check_if_more_info_needed(state) == "more_info_needed"
+    monkeypatch.setattr(retrieval.settings, "min_relevance", 0.33)
+    docs = [doc(relevance=0.28), doc(relevance=0.3)]
+    assert check_if_more_info_needed({"query": "q", "documents": docs}) == "more_info_needed"
 
 
-@patch("backend.ai.nodes.generation.ChatPromptTemplate.from_messages")
-@patch("backend.ai.nodes.generation.get_llm")
-def test_generate_invokes_chain_with_context(mock_get_llm, mock_from_messages):
-    mock_prompt = MagicMock()
-    mock_after_llm = MagicMock()
-    mock_chain = MagicMock()
-    
-    # Mocking LCEL prompt | llm | output_parser
-    mock_prompt.__or__.return_value = mock_after_llm
-    mock_after_llm.__or__.return_value = mock_chain
-    mock_chain.ainvoke = AsyncMock(return_value="Synthesized answer from context.")
-    mock_from_messages.return_value = mock_prompt
+def test_retrieve_records_relevance_and_uses_standalone_query():
+    vector_db = MagicMock()
+    vector_db.similarity_search_with_relevance_scores.return_value = [(doc(relevance=None), 0.61234)]
+    with patch("backend.ai.nodes.retrieval.Chroma", return_value=vector_db):
+        out = retrieve({"query": "its voltage?", "search_query": "Q7 input voltage?"})
 
-    docs = [Document(page_content="Spec: 12V DC input.", metadata={"source": "manual"})]
-    state = {"query": "What voltage?", "documents": docs, "chat_history": []}
+    assert vector_db.similarity_search_with_relevance_scores.call_args[0][0] == "Q7 input voltage?"
+    assert out["documents"][0].metadata["relevance"] == 0.612
 
-    # Execute async generate function
-    out = asyncio.run(generate(state, config=MagicMock()))
-    
-    assert out == {"answer": "Synthesized answer from context."}
-    mock_chain.ainvoke.assert_called_once()
-    
-    call_kw = mock_chain.ainvoke.call_args[0][0]
-    assert call_kw["question"] == "What voltage?"
 
-    # Verify static prefix contains the retrieved context
-    call_messages = mock_from_messages.call_args[0][0]
-    system_prompt = call_messages[0][1]
-    assert "12V DC input" in system_prompt
-    assert "RETRIEVED CONTEXT:" in system_prompt
+# Generation
+
+def test_generate_answers_from_documents_in_the_user_turn():
+    llm = ScriptedChatModel(default="12V [Source: manual.pdf, Page: 4]")
+    state = {"query": "What voltage?", "documents": [doc("Spec: 12V DC input.", page=4)], "chat_history": []}
+
+    with patch("backend.ai.nodes.generation.get_llm", return_value=llm):
+        out = asyncio.run(generate(state, config=MagicMock()))
+
+    assert out == {"answer": "12V [Source: manual.pdf, Page: 4]"}
+    system, human = llm.calls[0]
+    assert "Spec: 12V DC" not in system.content
+    assert "[Source: manual.pdf, Page: 4]\nSpec: 12V DC input." in human.content
+    assert human.content.endswith("Question: What voltage?")

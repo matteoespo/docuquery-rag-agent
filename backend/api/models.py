@@ -23,21 +23,3 @@ class QueryRequest(BaseModel):
         max_length=50,
         description="Previous conversation messages (max 50).",
     )
-
-
-# LLM structured output schemas
-
-class RouteDecision(BaseModel):
-    """Route a user query to the vectorstore or reject it."""
-    datasource: Literal["vector_store", "out_of_scope"] = Field(
-        description="Route to vectorstore if the query is about technical manuals. "
-                    "Route to out_of_scope if it's general chat, math, or unrelated topics.",
-    )
-
-
-class RetrievalEvaluation(BaseModel):
-    """Assess if retrieved documents contain enough information to answer the query."""
-    datasource: Literal["vector_store", "more_info_needed"] = Field(
-        description="Route to vector_store if the documents contain the answer. "
-                    "Route to more_info_needed if they do not.",
-    )

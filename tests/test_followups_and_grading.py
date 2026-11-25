@@ -5,14 +5,13 @@ import json
 from unittest.mock import MagicMock, patch
 
 from langchain_core.documents import Document
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, AIMessageChunk
-from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.messages import AIMessageChunk
 
 from backend.ai.nodes.contextualize import contextualize
 from backend.ai.nodes.generation import grade_answer
 from backend.ai.nodes.websearch import websearch
 from backend.api.routers import generate_tokens
+from tests.fakes import ScriptedChatModel
 
 HISTORY = [
     {"role": "user", "content": "Tell me about the X100 pump."},
@@ -21,34 +20,11 @@ HISTORY = [
 REWRITE = "What is the input voltage of the X100 pump?"
 
 
-class ScriptedChatModel(BaseChatModel):
-    """Answers according to which node is calling, recognised by its system prompt."""
-
-    calls: list = []
-    grader_says: str = "yes"
-
-    @property
-    def _llm_type(self) -> str:
-        return "scripted"
-
-    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-        system = messages[0].content
-        human = messages[-1].content
-        self.calls.append((system, human))
-        if "standalone question" in system:
-            reply = REWRITE
-        elif "strict routing system" in system:
-            reply = "vector_store"
-        elif "relevance of retrieved documents" in system:
-            reply = "vector_store"
-        elif "grader assessing whether an answer" in system:
-            reply = self.grader_says
-        else:
-            reply = "It needs 24V [Source: x100.pdf, Page: 2]"
-        return ChatResult(generations=[ChatGeneration(message=AIMessage(content=reply))])
-
-    def calls_matching(self, text: str) -> list:
-        return [c for c in self.calls if text in c[0]]
+def scripted(grader_says="yes"):
+    return ScriptedChatModel(
+        replies={"standalone question": REWRITE, "grader assessing whether an answer": grader_says},
+        default="It needs 24V [Source: x100.pdf, Page: 2]",
+    )
 
 
 # Contextualize
@@ -61,12 +37,13 @@ def test_contextualize_without_history_skips_llm():
 
 
 def test_contextualize_rewrites_followup_using_history():
-    llm = ScriptedChatModel(calls=[])
+    llm = scripted()
     with patch("backend.ai.nodes.contextualize.get_llm", return_value=llm):
         out = asyncio.run(contextualize({"query": "what about its voltage?", "chat_history": HISTORY}))
     assert out == {"search_query": REWRITE}
-    _, human = llm.calls[0]
-    assert "X100 pump" in human and "what about its voltage?" in human
+    system, human = llm.calls[0]
+    assert "X100 pump" in human.content and "what about its voltage?" in human.content
+    assert "technical terms" in system.content  # keeps the user's key terms
 
 
 def test_contextualize_falls_back_to_query_on_llm_error():
@@ -79,8 +56,11 @@ def test_contextualize_falls_back_to_query_on_llm_error():
 
 # Grader
 
-def test_grader_sees_the_documents():
-    llm = ScriptedChatModel(calls=[], grader_says="no")
+def test_grader_sees_the_documents(monkeypatch):
+    import backend.ai.nodes.generation as generation
+
+    monkeypatch.setattr(generation.settings, "enable_answer_grader", True)
+    llm = scripted(grader_says="no")
     state = {
         "query": "Input voltage?",
         "answer": "48V",
@@ -89,7 +69,7 @@ def test_grader_sees_the_documents():
     }
     with patch("backend.ai.nodes.generation.get_llm", return_value=llm):
         assert grade_answer(state) == "not_useful"
-    _, human = llm.calls[0]
+    human = llm.calls[0][-1].content
     assert "Input: 24V DC" in human
     assert "[Source: x100.pdf, Page: 2]" in human
 
@@ -159,13 +139,13 @@ def test_stream_resets_client_when_answer_is_regenerated():
 def test_graph_retrieves_with_rewritten_followup():
     from ai.agent import load_agent
 
-    llm = ScriptedChatModel(calls=[])
+    llm = scripted()
     vector_db = MagicMock()
-    vector_db.similarity_search.return_value = [
-        Document(page_content="X100 input: 24V DC", metadata={"source": "data/pdfs/x100.pdf", "page": 2}),
+    vector_db.similarity_search_with_relevance_scores.return_value = [
+        (Document(page_content="X100 input: 24V DC", metadata={"source": "data/pdfs/x100.pdf", "page": 2}), 0.7),
     ]
-    targets = ["ai.nodes.contextualize", "ai.nodes.routing", "ai.nodes.retrieval", "ai.nodes.generation", "ai.memory"]
-    patches = [patch(f"{t}.get_llm", return_value=llm) for t in targets]
+    patches = [patch(f"{t}.get_llm", return_value=llm)
+               for t in ("ai.nodes.contextualize", "ai.nodes.routing", "ai.nodes.generation")]
     patches.append(patch("ai.nodes.retrieval.Chroma", return_value=vector_db))
     for p in patches:
         p.start()
@@ -178,11 +158,16 @@ def test_graph_retrieves_with_rewritten_followup():
         for p in patches:
             p.stop()
 
-    vector_db.similarity_search.assert_called_once()
-    assert vector_db.similarity_search.call_args[0][0] == REWRITE
-    assert REWRITE in llm.calls_matching("strict routing system")[0][1]
+    assert vector_db.similarity_search_with_relevance_scores.call_args[0][0] == REWRITE
+    router_call = next(m for m in llm.calls if "When in doubt" in m[0].content)
+    assert router_call[-1].content == REWRITE
     assert result["search_query"] == REWRITE
     assert result["answer"] == "It needs 24V [Source: x100.pdf, Page: 2]"
-    # The original wording is what gets answered.
-    generation_human = [c[1] for c in llm.calls if "technical assistant" in c[0]]
-    assert generation_human == ["what about its voltage?"]
+    # The original wording is what gets answered, after the prior turns.
+    generation = llm.calls_with_system("You are DocuQuery")
+    assert len(generation) == 1
+    assert [m.type for m in generation[0]] == ["system", "human", "ai", "human"]
+    assert generation[0][-1].content.endswith("Question: what about its voltage?")
+    # Defaults: the relevance gate decides on the score alone and the grader is
+    # off, so only rewrite, route and answer call the LLM.
+    assert len(llm.calls) == 3
