@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Bot } from 'lucide-react';
-import type { ChatMessage as ChatMessageType } from '@/types';
+import { User, Bot, FileText, Globe, Square } from 'lucide-react';
+import type { ChatMessage as ChatMessageType, Source } from '@/types';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { TypingIndicator } from '@/components/ui/typing-indicator';
+import { citedSourceKeys, linkifyCitations, sourceHref, sourceKey, sourceLabel } from '@/lib/citations';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -69,10 +70,53 @@ export function ChatMessage({ message }: ChatMessageProps) {
           ) : isEmpty ? (
             <TypingIndicator label={message.status} />
           ) : (
-            <MarkdownRenderer content={message.content} />
+            <MarkdownRenderer content={linkifyCitations(message.content, message.sources ?? [])} />
           )}
         </div>
+
+        {!isUser && message.stopped && !isEmpty && (
+          <div className="flex items-center gap-1 px-1 text-xs text-zinc-500">
+            <Square size={10} /> Stopped
+          </div>
+        )}
+
+        {!isUser && !isEmpty && !message.isError && message.sources && message.sources.length > 0 && (
+          <SourceChips sources={message.sources} content={message.content} />
+        )}
       </div>
     </motion.div>
+  );
+}
+
+/** Retrieved sources under an answer; the ones the answer cites come first and are highlighted. */
+function SourceChips({ sources, content }: { sources: Source[]; content: string }) {
+  const cited = useMemo(() => citedSourceKeys(content, sources), [content, sources]);
+  const ordered = [...sources].sort((a, b) => Number(cited.has(sourceKey(b))) - Number(cited.has(sourceKey(a))));
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-1 pt-1">
+      <span className="text-xs text-zinc-500">Sources:</span>
+      {ordered.map((source) => {
+        const isCited = cited.has(sourceKey(source));
+        const Icon = source.url ? Globe : FileText;
+        return (
+          <a
+            key={sourceKey(source)}
+            href={sourceHref(source)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={isCited ? 'Cited in the answer' : 'Retrieved, not cited'}
+            className={`flex max-w-[16rem] items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+              isCited
+                ? 'border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20'
+                : 'border-zinc-800 bg-zinc-900/60 text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Icon size={12} className="flex-shrink-0" />
+            <span className="truncate">{sourceLabel(source)}</span>
+          </a>
+        );
+      })}
+    </div>
   );
 }

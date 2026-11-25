@@ -1,3 +1,10 @@
+/** A retrieved chunk the answer was generated from. */
+export interface Source {
+  source: string; // file name, or URL for web results
+  page: number | string | null;
+  url: string | null; // set for web results
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -7,6 +14,10 @@ export interface ChatMessage {
   isError?: boolean;
   /** Agent progress shown while the message has no content yet. */
   status?: string;
+  /** Chunks the answer was generated from. */
+  sources?: Source[];
+  /** The user stopped the answer while it was streaming. */
+  stopped?: boolean;
 }
 
 export interface UploadResponse {
